@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   version="1.1"
+   width="90.929314"
+   height="89.5625"
+   id="svg2"
+   inkscape:version="1.0.2-2 (e86c870879, 2021-01-15)"
+   sodipodi:docname="AwaitStep.svg">
+  <sodipodi:namedview
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1"
+     objecttolerance="10"
+     gridtolerance="10"
+     guidetolerance="10"
+     inkscape:pageopacity="0"
+     inkscape:pageshadow="2"
+     inkscape:window-width="2400"
+     inkscape:window-height="1271"
+     id="namedview13"
+     showgrid="false"
+     fit-margin-top="0"
+     fit-margin-left="0"
+     fit-margin-right="0"
+     fit-margin-bottom="0"
+     inkscape:zoom="10.148731"
+     inkscape:cx="28.427612"
+     inkscape:cy="46.665894"
+     inkscape:window-x="2871"
+     inkscape:window-y="-9"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="svg2"
+     inkscape:document-rotation="0" />
+  <defs
+     id="defs4">
+    <clipPath
+       id="clipPath3020">
+      <path
+         d="m 0,0 1507,0 0,888.648 -1507,0 L 0,0 z"
+         id="path3022"
+         inkscape:connector-curvature="0" />
+    </clipPath>
+  </defs>
+  <metadata
+     id="metadata7">
+    <rdf:RDF>
+      <cc:Work
+         rdf:about="">
+        <dc:format>image/svg+xml</dc:format>
+        <dc:type
+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+        <dc:title />
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
+  <ellipse
+     style="opacity:1;fill:#000000;fill-opacity:1;stroke:#000000;stroke-width:1.06124;stroke-opacity:0.62"
+     id="path2010"
+     cx="46.26194"
+     cy="44.783928"
+     rx="31.352613"
+     ry="43.965027" />
+  <ellipse
+     style="fill:#00ff00;fill-opacity:0.5;stroke:#000000;stroke-opacity:0.619608"
+     id="path2014-8-6"
+     cx="46.508278"
+     cy="71.831642"
+     rx="16.356726"
+     ry="15.174311" />
+  <ellipse
+     style="fill:#ffa300;fill-opacity:0.5;stroke:#000000;stroke-opacity:0.619608"
+     id="path2014-8"
+     cx="47.000946"
+     cy="46.015602"
+     rx="16.356726"
+     ry="15.174311" />
+  <ellipse
+     style="opacity:1;fill:#ff0000;fill-opacity:1;stroke:#000000;stroke-opacity:0.619608"
+     id="path2014"
+     cx="46.40974"
+     cy="18.031811"
+     rx="16.356726"
+     ry="15.174311" />
+</svg>
