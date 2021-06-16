@@ -262,8 +262,6 @@ public class CompareAndSetStep extends BaseStep implements StepInterface {
             }
         }
 
-        //TODO(AR) how is an Atomic ever destroyed, we want to shrink the Map when we are finished with the things
-
         if (casTarget != null) {
             // send to specific target for CAS success
             final Set<RowSet> casTargetRowSets = data.getCasOutputRowSets().get(casTarget.getCompareValue());

@@ -50,6 +50,7 @@ import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.List;
 
+import static uk.gov.nationalarchives.pdi.step.atomics.Util.isNotEmpty;
 import static uk.gov.nationalarchives.pdi.step.atomics.Util.isNullOrEmpty;
 
 @Step(id = "AwaitStep", image = "AwaitStep.svg", name = "Await Atomic Value",
@@ -66,6 +67,7 @@ public class AwaitStepMeta extends BaseStepMeta implements StepMetaInterface {
     private static final String ATTR_NAME_VALUE = "value";
     private static final String ELEM_NAME_ATOMIC_VALUE = "atomicValue";
     private static final String ATTR_NAME_TARGET_STEP = "targetStep";
+    private static final String ATTR_NAME_DISCARD_ATOMIC = "discardAtomic";
     private static final String ELEM_NAME_WAIT_LOOP = "waitLoop";
     private static final String ATTR_NAME_CHECK_PERIOD = "checkPeriod";
     private static final String ATTR_NAME_TIMEOUT = "timeout";
@@ -90,6 +92,7 @@ public class AwaitStepMeta extends BaseStepMeta implements StepMetaInterface {
     private long waitAtomicTimeout = DEFAULT_TIMEOUT;
     private String atomicValue;
     private String atomicValueTargetStepname;
+    private boolean discardAtomic;
     private long waitLoopCheckPeriod = DEFAULT_CHECK_PERIOD;
     private long waitLoopTimeout = DEFAULT_TIMEOUT;
     private String timeoutTargetStepname;
@@ -106,6 +109,7 @@ public class AwaitStepMeta extends BaseStepMeta implements StepMetaInterface {
         actionIfNoAtomic = ActionIfNoAtomic.Continue;
         initialiseAtomicValue = null;
         atomicValue = "true";
+        discardAtomic = false;
         waitLoopCheckPeriod = DEFAULT_CHECK_PERIOD;
         waitLoopTimeout = DEFAULT_TIMEOUT;
     }
@@ -134,9 +138,9 @@ public class AwaitStepMeta extends BaseStepMeta implements StepMetaInterface {
 
         final String xAtomicValueTargetStepname = this.atomicValueTargetStep != null ? this.atomicValueTargetStep.getName() : this.atomicValueTargetStepname;
         if (!isNullOrEmpty(xAtomicValueTargetStepname)) {
-            builder.append(XMLHandler.addTagValue(ELEM_NAME_ATOMIC_VALUE, atomicValue, true, ATTR_NAME_TARGET_STEP, xAtomicValueTargetStepname));
+            builder.append(XMLHandler.addTagValue(ELEM_NAME_ATOMIC_VALUE, atomicValue, true, ATTR_NAME_TARGET_STEP, xAtomicValueTargetStepname, ATTR_NAME_DISCARD_ATOMIC, Boolean.toString(discardAtomic)));
         } else {
-            builder.append(XMLHandler.addTagValue(ELEM_NAME_ATOMIC_VALUE, atomicValue));
+            builder.append(XMLHandler.addTagValue(ELEM_NAME_ATOMIC_VALUE, atomicValue, true, ATTR_NAME_DISCARD_ATOMIC, Boolean.toString(discardAtomic)));
         }
 
         final String xTimeoutTargetStepname = this.timeoutTargetStep != null ? this.timeoutTargetStep.getName() : this.timeoutTargetStepname;
@@ -214,6 +218,8 @@ public class AwaitStepMeta extends BaseStepMeta implements StepMetaInterface {
                 if (xAtomicValueTargetStepname != null) {
                     this.atomicValueTargetStepname = xAtomicValueTargetStepname;
                 }
+                final String xDiscardAtomic = XMLHandler.getTagAttribute(node, ATTR_NAME_DISCARD_ATOMIC);
+                this.discardAtomic = isNotEmpty(xDiscardAtomic) ? Boolean.parseBoolean(xDiscardAtomic) : false;
 
                 try {
                     this.atomicValue = atomicType.checkValidValue(xAtomicValue);
@@ -509,6 +515,14 @@ public class AwaitStepMeta extends BaseStepMeta implements StepMetaInterface {
 
     public void setAtomicValueTargetStep(@Nullable final StepMeta atomicValueTargetStep) {
         this.atomicValueTargetStep = atomicValueTargetStep;
+    }
+
+    public boolean isDiscardAtomic() {
+        return discardAtomic;
+    }
+
+    public void setDiscardAtomic(final boolean discardAtomic) {
+        this.discardAtomic = discardAtomic;
     }
 
     public long getWaitLoopCheckPeriod() {

@@ -208,8 +208,6 @@ public class AwaitStep extends BaseStep implements StepInterface {
             }
         }  // end while
 
-        //TODO(AR) how is an Atomic ever destroyed, we want to shrink the Map when we are finished with the things
-
         // send to specific target for Await success
         final StepMeta atomicValueTargetStep = meta.getAtomicValueTargetStep();
         if (atomicValueTargetStep != null) {
@@ -218,6 +216,13 @@ public class AwaitStep extends BaseStep implements StepInterface {
 
             this.logDebug("Await DONE: <{0}>[{1}]", atomicId, meta.getAtomicValue());
             logLineNumber();
+
+            if (meta.isDiscardAtomic()) {
+                // discard the atomic if requested to do so
+                if (!data.removeAtomic(atomicId)) {
+                    this.logError("Unable to discard Atomic with ID: {0}", atomicId);
+                }
+            }
 
             return true;  // row done!
         } else {

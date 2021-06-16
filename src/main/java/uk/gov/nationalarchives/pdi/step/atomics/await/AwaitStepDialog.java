@@ -87,6 +87,8 @@ public class AwaitStepDialog extends BaseStepDialog implements StepDialogInterfa
     private TextVar wAtomicValueIntegerField;
     private Label wAtomicValueTargetLabel;
     private CCombo wAtomicValueTargetField;
+    private Label wDiscardAtomicLabel;
+    private Button wDiscardAtomicCheckbox;
     private Label wWaitLoopCheckPeriodLabel;
     private Text wWaitLoopCheckPeriodField;
     private Label wWaitLoopTimeoutLabel;
@@ -409,6 +411,23 @@ public class AwaitStepDialog extends BaseStepDialog implements StepDialogInterfa
                 .result();
         wAtomicValueTargetField.setLayoutData(fdAtomicValueTargetField);
 
+        // discard atomic label/checkbox
+        wDiscardAtomicLabel = new Label(settingsGroup, SWT.LEFT);
+        props.setLook(wDiscardAtomicLabel);
+        wDiscardAtomicLabel.setText(BaseMessages.getString(PKG, "AwaitStepDialog.CheckboxDiscardAtomic"));
+        final FormData fdDiscardAtomicLabel = new FormDataBuilder().left(wAtomicValueTargetField, LABEL_SPACING)
+                .top(wActionIfNoAtomicLabel, ELEMENT_SPACING)
+                .result();
+        wDiscardAtomicLabel.setLayoutData(fdDiscardAtomicLabel);
+
+        wDiscardAtomicCheckbox = new Button(settingsGroup, SWT.CHECK);
+        props.setLook(wDiscardAtomicCheckbox);
+        wDiscardAtomicCheckbox.setBackground(display.getSystemColor(SWT.COLOR_TRANSPARENT));
+        final FormData fdDiscardAtomicCheckbox = new FormDataBuilder().left(wDiscardAtomicLabel, LABEL_SPACING)
+                .top(wActionIfNoAtomicLabel, ELEMENT_SPACING)
+                .result();
+        wDiscardAtomicCheckbox.setLayoutData(fdDiscardAtomicCheckbox);
+
         // Group for wait loop
         final Group waitLoopGroup = new Group(settingsGroup, SWT.SHADOW_ETCHED_IN);
         props.setLook(waitLoopGroup);
@@ -646,6 +665,8 @@ public class AwaitStepDialog extends BaseStepDialog implements StepDialogInterfa
         }
         wAtomicValueTargetField.setText(meta.getAtomicValueTargetStep() == null ? "" : meta.getAtomicValueTargetStep().getName());
 
+        wDiscardAtomicCheckbox.setSelection(meta.isDiscardAtomic());
+
         wWaitLoopCheckPeriodField.setText(Long.toString(meta.getWaitLoopCheckPeriod()));
         wWaitLoopTimeoutField.setText(Long.toString(meta.getWaitLoopTimeout()));
 
@@ -724,6 +745,8 @@ public class AwaitStepDialog extends BaseStepDialog implements StepDialogInterfa
         } else {
             meta.setAtomicValueTargetStep(null);
         }
+
+        meta.setDiscardAtomic(wDiscardAtomicCheckbox.getSelection());
 
         try {
             final long checkPeriod = Long.parseLong(wWaitLoopCheckPeriodField.getText());

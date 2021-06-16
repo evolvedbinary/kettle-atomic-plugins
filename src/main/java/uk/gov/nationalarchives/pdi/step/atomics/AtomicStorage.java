@@ -109,4 +109,8 @@ public class AtomicStorage {
             }
         })._2;
     }
+
+    public boolean removeAtomic(final String id) {
+        return storage.remove(id) != null;
+    }
 }

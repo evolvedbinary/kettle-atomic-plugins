@@ -53,6 +53,10 @@ public class AwaitStepData extends BaseStepData implements StepDataInterface {
         return AtomicStorage.INSTANCE.getOrCreateAtomic(id, atomicType, initialValue);
     }
 
+    public boolean removeAtomic(final String id) {
+        return AtomicStorage.INSTANCE.removeAtomic(id);
+    }
+
     // <editor-fold desc="get/set properties">
     public RowMetaInterface getOutputRowMeta() {
         return outputRowMeta;
