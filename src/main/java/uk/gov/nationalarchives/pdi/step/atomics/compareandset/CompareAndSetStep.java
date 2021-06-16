@@ -169,6 +169,9 @@ public class CompareAndSetStep extends BaseStep implements StepInterface {
             long waitedForSet = 0;
             while (true) {
 
+                // refresh the atomic object
+                atomicObj = data.getAtomic(atomicId, atomicType);
+
                 set = false;
 
                 // try and set each value in turn

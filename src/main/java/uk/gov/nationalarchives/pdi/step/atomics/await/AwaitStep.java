@@ -162,6 +162,9 @@ public class AwaitStep extends BaseStep implements StepInterface {
         long waited = 0;
         while (true) {
 
+            // refresh the atomic object
+            atomicObj = data.getAtomic(atomicId, atomicType);
+
             if (AtomicType.Boolean == atomicType) {
                 final AtomicBoolean atomicBoolean = (AtomicBoolean) atomicObj;
                 final boolean awaitValueBoolean = Boolean.valueOf(meta.getAtomicValue());
