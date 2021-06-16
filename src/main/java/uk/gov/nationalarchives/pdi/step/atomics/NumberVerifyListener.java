@@ -27,21 +27,33 @@ import org.eclipse.swt.events.VerifyEvent;
 import org.eclipse.swt.events.VerifyListener;
 import org.eclipse.swt.widgets.Text;
 
+import java.util.function.Function;
+
 public class NumberVerifyListener implements VerifyListener {
+    private final Function<VerifyEvent, String> fnGetOldString;
     private final ConsumerE<String, NumberFormatException> parseChecker;
 
-    public NumberVerifyListener(final ConsumerE<String, NumberFormatException> parseChecker) {
+    NumberVerifyListener(final Function<VerifyEvent, String> fnGetOldString, final ConsumerE<String, NumberFormatException> parseChecker) {
+        this.fnGetOldString = fnGetOldString;
         this.parseChecker = parseChecker;
     }
 
+    public NumberVerifyListener(final ConsumerE<String, NumberFormatException> parseChecker) {
+        this(verifyEvent -> {
+            final Text text = (Text) verifyEvent.getSource();
+            final String oldString = text.getText();
+            return oldString;
+        }, parseChecker);
+    }
+
     @Override
-    public void verifyText(final VerifyEvent e) {
+    public void verifyText(final VerifyEvent verifyEvent) {
         // ONLY allow integers!
 
         // get old string and create new string by using the VerifyEvent.text
-        final Text text = (Text)e.getSource();
-        final String oldString = text.getText();
-        final String newString = oldString.substring(0, e.start) + e.text + oldString.substring(e.end);
+        final String oldString = fnGetOldString.apply(verifyEvent);
+
+        final String newString = oldString.substring(0, verifyEvent.start) + verifyEvent.text + oldString.substring(verifyEvent.end);
 
         boolean isValid = false;
         try {
@@ -52,7 +64,7 @@ public class NumberVerifyListener implements VerifyListener {
         }
 
         if(!isValid) {
-            e.doit = false;
+            verifyEvent.doit = false;
         }
     }
 }

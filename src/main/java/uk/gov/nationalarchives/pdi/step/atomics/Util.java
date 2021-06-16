@@ -24,7 +24,7 @@ package uk.gov.nationalarchives.pdi.step.atomics;
 
 import javax.annotation.Nullable;
 
-public class Util {
+public interface Util {
 
     /**
      * Given a String, returns null if the String is empty, or
@@ -34,7 +34,7 @@ public class Util {
      *
      * @return a non-empty String, else null
      */
-    public static @Nullable String nullIfEmpty(@Nullable final String s) {
+    static @Nullable String nullIfEmpty(@Nullable final String s) {
         if (s != null && !s.isEmpty()) {
             return s;
         } else {
@@ -50,7 +50,7 @@ public class Util {
      *
      * @return an empty String if {@code s == null}, else a string.
      */
-    public static String emptyIfNull(@Nullable final String s) {
+    static String emptyIfNull(@Nullable final String s) {
         if (s == null) {
             return "";
         } else {
@@ -65,7 +65,7 @@ public class Util {
      *
      * @return true if the String is null or empty, false otherwise.
      */
-    public static boolean isNullOrEmpty(@Nullable final String s) {
+    static boolean isNullOrEmpty(@Nullable final String s) {
         return s == null || s.isEmpty();
     }
 
@@ -76,7 +76,7 @@ public class Util {
      *
      * @return true if the String is not null and not empty, false otherwise.
      */
-    public static boolean isNotEmpty(@Nullable final String s) {
+    static boolean isNotEmpty(@Nullable final String s) {
         return s != null && !s.isEmpty();
     }
 
@@ -85,7 +85,7 @@ public class Util {
      *
      * @return true if the string is `true` or `false`, otherwise false
      */
-    public static boolean isStrTrueOrFalse(final String s) {
+    static boolean isStrTrueOrFalse(final String s) {
         if (s == null) {
             return false;
         }
@@ -98,7 +98,7 @@ public class Util {
      *
      * @return `true` if the string is `true` or a number greater than 0, else `false`
      */
-    public static String unknownStrToBooleanStr(String s) {
+    static String unknownStrToBooleanStr(String s) {
         if (s == null) {
             return "false";
         }
@@ -120,7 +120,7 @@ public class Util {
      *
      * @return a number as a String if the string is a number or is `true`, otherwise `0`
      */
-    public static String unknownStrToIntegerStr(String s) {
+    static String unknownStrToIntegerStr(String s) {
         if (s == null) {
             return "0";
         }

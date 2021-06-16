@@ -113,4 +113,13 @@ public class AtomicStorage {
     public boolean removeAtomic(final String id) {
         return storage.remove(id) != null;
     }
+
+    /**
+     * Removes all Atomic Booleans from storage.
+     *
+     * Used for testing!
+     */
+    void clear() {
+        storage.clear();
+    }
 }

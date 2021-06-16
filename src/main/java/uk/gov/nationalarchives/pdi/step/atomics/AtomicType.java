@@ -43,7 +43,7 @@ public enum AtomicType {
                 throw new IllegalArgumentException("null is not a valid integer");
             }
             java.lang.Integer.valueOf(value);
-        } else if (this == AtomicType.Boolean) {
+        } else {
             if (value == null) {
                 throw new IllegalArgumentException("null is not a valid boolean");
             }
