@@ -37,6 +37,8 @@ import uk.gov.nationalarchives.pdi.step.atomics.ErrorCodes;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import static uk.gov.nationalarchives.pdi.step.atomics.Util.isNotEmpty;
+
 public class AwaitStep extends BaseStep implements StepInterface {
 
     private static Class<?> PKG = AwaitStep.class; // for i18n purposes, needed by Translator2!!   $NON-NLS-1$
@@ -105,7 +107,8 @@ public class AwaitStep extends BaseStep implements StepInterface {
                 this.logDebug("Await No Atomic object for id: {0}, and ActionIfNoAtomic == Continue", atomicId);
 
                 // is there a Continue target step?
-                if (meta.getContinueTargetStep() != null) {
+                final String metaContinueTargetStepName = meta.getContinueTargetStep() != null ? meta.getContinueTargetStep().getName() : meta.getContinueTargetStepname();
+                if (isNotEmpty(metaContinueTargetStepName)) {
 
                     // send row to the Continue output of the step
                     this.putRowTo(data.getOutputRowMeta(), row, data.getContinueOutputRowSet());
@@ -185,7 +188,8 @@ public class AwaitStep extends BaseStep implements StepInterface {
                     // TIMEOUT reached!
 
                     // is there a timeout target step?
-                    if (meta.getTimeoutTargetStep() != null) {
+                    final String metaTimeoutTargetStepName = meta.getTimeoutTargetStep() != null ? meta.getTimeoutTargetStep().getName() : meta.getTimeoutTargetStepname();
+                    if (isNotEmpty(metaTimeoutTargetStepName)) {
 
                         // send row to the timeout output of the step
                         this.putRowTo(data.getOutputRowMeta(), row, data.getTimeoutOutputRowSet());
@@ -209,8 +213,8 @@ public class AwaitStep extends BaseStep implements StepInterface {
         }  // end while
 
         // send to specific target for Await success
-        final StepMeta atomicValueTargetStep = meta.getAtomicValueTargetStep();
-        if (atomicValueTargetStep != null) {
+        final String metaAtomicValueTargetStepName = meta.getAtomicValueTargetStep() != null ? meta.getAtomicValueTargetStep().getName() : meta.getAtomicValueTargetStepname();
+        if (isNotEmpty(metaAtomicValueTargetStepName)) {
 
             this.putRowTo(data.getOutputRowMeta(), row, data.getAtomicValueOutputRowSet());
 
@@ -283,30 +287,33 @@ public class AwaitStep extends BaseStep implements StepInterface {
 
             // The ioMeta object also has optional target streams for: continue, skip, and timeout.
 
-            if (meta.getContinueTargetStep() != null) {
-                final RowSet rowSet = findOutputRowSet(meta.getContinueTargetStep().getName());
+            final String metaContinueTargetStepName = meta.getContinueTargetStep() != null ? meta.getContinueTargetStep().getName() : meta.getContinueTargetStepname();
+            if (isNotEmpty(metaContinueTargetStepName)) {
+                final RowSet rowSet = findOutputRowSet(metaContinueTargetStepName);
                 if (rowSet != null) {
                     data.setContinueOutputRowSet(rowSet);
                 } else {
-                    throw new KettleException(BaseMessages.getString(PKG, "AwaitStep.Log.UnableToFindContinueTargetRowSetForStep", new Object[]{ meta.getContinueTargetStep() }));
+                    throw new KettleException(BaseMessages.getString(PKG, "AwaitStep.Log.UnableToFindContinueTargetRowSetForStep", new Object[]{ metaContinueTargetStepName }));
                 }
             }
 
-            if (meta.getAtomicValueTargetStep() != null) {
-                final RowSet rowSet = findOutputRowSet(meta.getAtomicValueTargetStep().getName());
+            final String metaAtomicValueTargetStepName = meta.getAtomicValueTargetStep() != null ? meta.getAtomicValueTargetStep().getName() : meta.getAtomicValueTargetStepname();
+            if (isNotEmpty(metaAtomicValueTargetStepName)) {
+                final RowSet rowSet = findOutputRowSet(metaAtomicValueTargetStepName);
                 if (rowSet != null) {
                     data.setAtomicValueOutputRowSet(rowSet);
                 } else {
-                    throw new KettleException(BaseMessages.getString(PKG, "CompareAndSetStep.Log.UnableToFindAtomicValueTargetRowSetForStep", new Object[]{ meta.getAtomicValueTargetStep() }));
+                    throw new KettleException(BaseMessages.getString(PKG, "CompareAndSetStep.Log.UnableToFindAtomicValueTargetRowSetForStep", new Object[]{ metaAtomicValueTargetStepName }));
                 }
             }
 
-            if (meta.getTimeoutTargetStep() != null) {
-                final RowSet rowSet = findOutputRowSet(meta.getTimeoutTargetStep().getName());
+            final String metaTimeoutTargetStepName = meta.getTimeoutTargetStep() != null ? meta.getTimeoutTargetStep().getName() : meta.getTimeoutTargetStepname();
+            if (isNotEmpty(metaTimeoutTargetStepName)) {
+                final RowSet rowSet = findOutputRowSet(metaTimeoutTargetStepName);
                 if (rowSet != null) {
                     data.setTimeoutOutputRowSet(rowSet);
                 } else {
-                    throw new KettleException(BaseMessages.getString(PKG, "AwaitStep.Log.UnableToFindTimeoutTargetRowSetForStep", new Object[] { meta.getTimeoutTargetStep() }));
+                    throw new KettleException(BaseMessages.getString(PKG, "AwaitStep.Log.UnableToFindTimeoutTargetRowSetForStep", new Object[] { metaTimeoutTargetStepName }));
                 }
             }
         } catch (final Exception e) {

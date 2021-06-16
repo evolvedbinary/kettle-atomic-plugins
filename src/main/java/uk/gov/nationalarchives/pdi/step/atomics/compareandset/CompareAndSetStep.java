@@ -41,6 +41,9 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import static uk.gov.nationalarchives.pdi.step.atomics.Util.isNotEmpty;
+import static uk.gov.nationalarchives.pdi.step.atomics.Util.isNullOrEmpty;
+
 public class CompareAndSetStep extends BaseStep implements StepInterface {
 
     private static Class<?> PKG = CompareAndSetStep.class; // for i18n purposes, needed by Translator2!!   $NON-NLS-1$
@@ -106,12 +109,13 @@ public class CompareAndSetStep extends BaseStep implements StepInterface {
                 this.logDebug("CAS No Atomic object for id: {0}, and ActionIfNoAtomic == Continue", atomicId);
 
                 // is there a Continue target step?
-                if (meta.getContinueTargetStep() != null) {
+                final String continueTargetStepName = meta.getContinueTargetStep() != null ? meta.getContinueTargetStep().getName() : meta.getContinueTargetStepname();
+                if (isNotEmpty(continueTargetStepName)) {
 
                     // send row to the Continue output of the step
                     this.putRowTo(data.getOutputRowMeta(), row, data.getContinueOutputRowSet());
 
-                    this.logDebug("CAS No Atomic, CONTINUE: <{0}>",atomicId);
+                    this.logDebug("CAS No Atomic, CONTINUE: <{0}>", atomicId);
                     logLineNumber();
 
                     return true; // row done!
@@ -202,7 +206,8 @@ public class CompareAndSetStep extends BaseStep implements StepInterface {
 //                        this.logDebug("CAS Unable to set: <{0}>, and ActionIfUnableToSet == Skip", atomicId);
 
                     // is there a Skip target step?
-                    if (meta.getSkipTargetStep() != null) {
+                    final String metaSkipTargetStepName = meta.getSkipTargetStep() != null ? meta.getSkipTargetStep().getName() : meta.getSkipTargetStepname();
+                    if (isNotEmpty(metaSkipTargetStepName)) {
 
                         // send row to the Skip output of the step
                         this.putRowTo(data.getOutputRowMeta(), row, data.getSkipOutputRowSet());
@@ -219,8 +224,11 @@ public class CompareAndSetStep extends BaseStep implements StepInterface {
 
 
                 } else if (ActionIfUnableToSet.Error == actionIfUnableToSet) {
-                    // TODO(AR) should this row be directed to error of step, i.e. putError(...)
-                    throw new KettleException("Unable to Compare And Set Value for: " + atomicId);
+                    // send row to the error output of the step
+                    final String errorMessage = "Unable to Compare And Set Value for: " + atomicId + ", and ActionIfUnableToSet == Error";
+                    this.putError(data.getOutputRowMeta(), row, 1L, errorMessage, data.getAtomicIdFieldName(), ErrorCodes.CAS_FAILED.getCode());
+                    logLineNumber();
+                    return true; // row done!
 
                 } else if (ActionIfUnableToSet.Loop == actionIfUnableToSet) {
 
@@ -232,12 +240,13 @@ public class CompareAndSetStep extends BaseStep implements StepInterface {
                             // TIMEOUT reached!
 
                             // is there a timeout target step?
-                            if (meta.getTimeoutTargetStep() != null) {
+                            final String metaTimeoutTargetStepName = meta.getTimeoutTargetStep() != null ? meta.getTimeoutTargetStep().getName() : meta.getTimeoutTargetStepname();
+                            if (isNotEmpty(metaTimeoutTargetStepName)) {
 
                                 // send row to the timeout output of the step
                                 this.putRowTo(data.getOutputRowMeta(), row, data.getTimeoutOutputRowSet());
 
-                                this.logDebug("CAS TIMEOUT: <{0}>{1}", atomicId, casTarget.toString());
+                                this.logDebug("CAS TIMEOUT: <{0}>", atomicId);
                                 logLineNumber();
 
                                 return true; // row done!
@@ -274,13 +283,15 @@ public class CompareAndSetStep extends BaseStep implements StepInterface {
             }
 
             this.logDebug("CAS OK: <{0}>{1}", atomicId, casTarget.toString());
-            logLineNumber();
-
-            return true;  // row done!
 
         } else {
-            throw new KettleException(new IllegalStateException("CAS It should not be possible to reach this state!"));
+            //send to default output if no CAS Target
+            this.putRow(data.getOutputRowMeta(), row);
         }
+
+        logLineNumber();
+
+        return true;  // row done!
     }
 
     private void logLineNumber() {
@@ -344,44 +355,48 @@ public class CompareAndSetStep extends BaseStep implements StepInterface {
                     break; // Skip over default option
                 }
 
-                if (compareAndSetValue.getTargetStep() == null) {
+                final String casTargetStepName = compareAndSetValue.getTargetStep() != null ? compareAndSetValue.getTargetStep().getName() : compareAndSetValue.getTargetStepname();
+                if (isNullOrEmpty(casTargetStepName)) {
                     throw new KettleException(BaseMessages.getString(
                             PKG, "CompareAndSetStep.Log.NoTargetStepSpecifiedForValue", compareAndSetValue.getCompareValue(), compareAndSetValue.getSetValue()));
                 }
 
-                final RowSet rowSet = findOutputRowSet(compareAndSetValue.getTargetStep().getName());
+                final RowSet rowSet = findOutputRowSet(casTargetStepName);
                 if (rowSet == null) {
-                    throw new KettleException(BaseMessages.getString(PKG, "CompareAndSetStep.Log.UnableToFindTargetRowSetForStep", new Object[] { compareAndSetValue.getTargetStep() }));
+                    throw new KettleException(BaseMessages.getString(PKG, "CompareAndSetStep.Log.UnableToFindTargetRowSetForStep", new Object[] { casTargetStepName }));
                 }
 
                 // store the compare value and the rowset
                 data.getCasOutputRowSets().put(compareAndSetValue.getCompareValue(), rowSet);
             }
 
-            if (meta.getContinueTargetStep() != null) {
-                final RowSet rowSet = findOutputRowSet(meta.getContinueTargetStep().getName());
+            final String metaContinueTargetStepName = meta.getContinueTargetStep() != null ? meta.getContinueTargetStep().getName() : meta.getContinueTargetStepname();
+            if (isNotEmpty(metaContinueTargetStepName)) {
+                final RowSet rowSet = findOutputRowSet(metaContinueTargetStepName);
                 if (rowSet != null) {
                     data.setContinueOutputRowSet(rowSet);
                 } else {
-                    throw new KettleException(BaseMessages.getString(PKG, "CompareAndSetStep.Log.UnableToFindContinueTargetRowSetForStep", new Object[]{ meta.getContinueTargetStep() }));
+                    throw new KettleException(BaseMessages.getString(PKG, "CompareAndSetStep.Log.UnableToFindContinueTargetRowSetForStep", new Object[]{ metaContinueTargetStepName }));
                 }
             }
 
-            if (meta.getSkipTargetStep() != null) {
-                final RowSet rowSet = findOutputRowSet(meta.getSkipTargetStep().getName());
+            final String metaSkipTargetStepName = meta.getSkipTargetStep() != null ? meta.getSkipTargetStep().getName() : meta.getSkipTargetStepname();
+            if (isNotEmpty(metaSkipTargetStepName)) {
+                final RowSet rowSet = findOutputRowSet(metaSkipTargetStepName);
                 if (rowSet != null) {
                     data.setSkipOutputRowSet(rowSet);
                 } else {
-                    throw new KettleException(BaseMessages.getString(PKG, "CompareAndSetStep.Log.UnableToFindSkipTargetRowSetForStep", new Object[]{ meta.getSkipTargetStep() }));
+                    throw new KettleException(BaseMessages.getString(PKG, "CompareAndSetStep.Log.UnableToFindSkipTargetRowSetForStep", new Object[]{ metaSkipTargetStepName }));
                 }
             }
 
-            if (meta.getTimeoutTargetStep() != null) {
-                final RowSet rowSet = findOutputRowSet(meta.getTimeoutTargetStep().getName());
+            final String metaTimeoutTargetStepName = meta.getTimeoutTargetStep() != null ? meta.getTimeoutTargetStep().getName() : meta.getTimeoutTargetStepname();
+            if (isNotEmpty(metaTimeoutTargetStepName)) {
+                final RowSet rowSet = findOutputRowSet(metaTimeoutTargetStepName);
                 if (rowSet != null) {
                     data.setTimeoutOutputRowSet(rowSet);
                 } else {
-                    throw new KettleException(BaseMessages.getString(PKG, "CompareAndSetStep.Log.UnableToFindTimeoutTargetRowSetForStep", new Object[] { meta.getTimeoutTargetStep() }));
+                    throw new KettleException(BaseMessages.getString(PKG, "CompareAndSetStep.Log.UnableToFindTimeoutTargetRowSetForStep", new Object[] { metaTimeoutTargetStepName }));
                 }
             }
         } catch (final Exception e) {

@@ -393,12 +393,12 @@ public class CompareAndSetStepMeta extends BaseStepMeta implements StepMetaInter
             // NOTE: the StepIOMeta parameters: outputProducer is set to false, and outputDynamic to true to disable the "Main output of step" target, as we will control the next target steps explicitly
             ioMeta = new StepIOMeta(true, false, false, false, false, true);
 
-            for (final CompareAndSetTarget compareAndSetValue : compareAndSetValues) {
-                final StreamInterface stream = new Stream(StreamInterface.StreamType.TARGET, compareAndSetValue.getTargetStep(), BaseMessages.getString(PKG, "CompareAndSetStepMeta.TargetStream.CASTarget.Description", new String[]{Const.NVL(compareAndSetValue.getCompareValue(), ""), Const.NVL(compareAndSetValue.getSetValue(), "")}), StreamIcon.TARGET, compareAndSetValue);
-                ((StepIOMetaInterface)ioMeta).addStream(stream);
+            if (compareAndSetValues != null) {
+                for (final CompareAndSetTarget compareAndSetValue : compareAndSetValues) {
+                    final StreamInterface stream = new Stream(StreamInterface.StreamType.TARGET, compareAndSetValue.getTargetStep(), BaseMessages.getString(PKG, "CompareAndSetStepMeta.TargetStream.CASTarget.Description", new String[]{Const.NVL(compareAndSetValue.getCompareValue(), ""), Const.NVL(compareAndSetValue.getSetValue(), "")}), StreamIcon.TARGET, compareAndSetValue);
+                    ((StepIOMetaInterface) ioMeta).addStream(stream);
+                }
             }
-
-
 
             if (this.getSkipTargetStep() != null) {
                 ((StepIOMetaInterface)ioMeta).addStream(new Stream(StreamInterface.StreamType.TARGET, this.getSkipTargetStep(), BaseMessages.getString(PKG, "CompareAndSetStepMeta.TargetStream.Skip.Description", new String[0]), StreamIcon.TARGET, (Object)null));

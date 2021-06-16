@@ -22,31 +22,26 @@
  */
 package uk.gov.nationalarchives.pdi.step.atomics;
 
-/**
- * Error Codes which can be produced by the Steps
- * when an error occurs.
- */
-public enum ErrorCodes {
-    NO_SUCH_ATOMIC("NSA1", "No such Atomic Value"),
-    NO_SUCH_ATOMIC_WAIT_TIMEOUT("NSA2", "Timeout reached when waiting for Atomic Value creation"),
-    NO_SUCH_ATOMIC_WAIT_INTERRUPTED("NSA3", "Thread interrupted whilst waiting for Atomic Value creation"),
-    AWAIT_ATOMIC_WAIT_INTERRUPTED("AWA4", "Thread interrupted whilst waiting for Atomic Value"),
-    CAS_ATOMIC_WAIT_INTERRUPTED("CAS5", "Thread interrupted whilst waiting to CAS Atomic Value"),
-    CAS_FAILED("CAS6", "Comparison failed when setting value");
+import com.evolvedbinary.j8fu.tuple.Tuple2;
 
-    private final String code;
-    private final String description;
+import java.util.Collections;
+import java.util.Map;
 
-    ErrorCodes(final String code, final  String description) {
-        this.code = code;
-        this.description = description;
+public interface AtomicStorageTestHelper {
+
+    static void clear() {
+        AtomicStorage.INSTANCE.clear();
     }
 
-    public String getCode() {
-        return code;
+    static Map<String, Tuple2<AtomicType, Object>> copy() {
+        return AtomicStorage.INSTANCE.copy();
     }
 
-    public String getDescription() {
-        return description;
+    static void set(final Map<String, Tuple2<AtomicType, Object>> atomicValues) {
+        AtomicStorage.INSTANCE.set(atomicValues);
+    }
+
+    static void set(final String id, final Tuple2<AtomicType, Object> atomicValue) {
+        AtomicStorage.INSTANCE.set(Collections.singletonMap(id, atomicValue));
     }
 }

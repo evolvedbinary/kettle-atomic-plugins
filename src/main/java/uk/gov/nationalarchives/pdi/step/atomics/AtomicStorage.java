@@ -26,6 +26,8 @@ import com.evolvedbinary.j8fu.tuple.Tuple2;
 import net.jcip.annotations.ThreadSafe;
 
 import javax.annotation.Nullable;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -121,5 +123,30 @@ public class AtomicStorage {
      */
     void clear() {
         storage.clear();
+    }
+
+    /**
+     * Gets a copy of the storage.
+     *
+     * Used for testing!
+     *
+     * @return a copy of the storage map
+     */
+    Map<String, Tuple2<AtomicType, Object>> copy() {
+        return new HashMap<>(storage);
+    }
+
+    /**
+     * Sets the storage.
+     *
+     * This function is NOT thread-safe!
+     *
+     * Used for testing!
+     *
+     * @param atomicValues the values to set the storage to
+     */
+    void set(final Map<String, Tuple2<AtomicType, Object>> atomicValues) {
+        storage.clear();
+        storage.putAll(atomicValues);
     }
 }

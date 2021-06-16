@@ -22,7 +22,7 @@
  */
 package uk.gov.nationalarchives.pdi.step.atomics;
 
-import mondrian.olap.InvalidArgumentException;
+import static com.evolvedbinary.j8fu.tuple.Tuple.*;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
@@ -41,6 +41,34 @@ public class AtomicStorageTest {
     @Test
     public void getNoSuchAtomic() {
         assertNull(AtomicStorage.INSTANCE.getAtomic("no-such-id", AtomicType.Integer));
+    }
+
+    @Test
+    public void getAtomicInteger() {
+        // 1st prepare the storage
+        final AtomicInteger atomicInt1 = new AtomicInteger(1);
+        AtomicStorageTestHelper.set("atomicInt1", Tuple(AtomicType.Integer, atomicInt1));
+
+        // 2nd retrieve
+        final Object atomicInt11 = AtomicStorage.INSTANCE.getAtomic("atomicInt1", AtomicType.Integer);
+        assertNotNull(atomicInt11);
+        assertTrue(atomicInt11 instanceof AtomicInteger);
+        assertTrue(atomicInt11 == atomicInt1);
+        assertEquals(1, ((AtomicInteger) atomicInt11).get());
+    }
+
+    @Test
+    public void getAtomicBoolean() {
+        // 1st prepare the storage
+        final AtomicBoolean atomicBool1 = new AtomicBoolean(true);
+        AtomicStorageTestHelper.set("atomicBool1", Tuple(AtomicType.Boolean, atomicBool1));
+
+        // 2nd retrieve
+        final Object atomicBool11 = AtomicStorage.INSTANCE.getAtomic("atomicBool1", AtomicType.Boolean);
+        assertNotNull(atomicBool11);
+        assertTrue(atomicBool11 instanceof AtomicBoolean);
+        assertTrue(atomicBool11 == atomicBool1);
+        assertTrue(((AtomicBoolean) atomicBool11).get());
     }
 
     @Test

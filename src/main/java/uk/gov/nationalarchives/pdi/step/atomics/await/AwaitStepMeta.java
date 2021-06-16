@@ -331,13 +331,6 @@ public class AwaitStepMeta extends BaseStepMeta implements StepMetaInterface {
             // NOTE: the StepIOMeta parameters: outputProducer is set to false, and outputDynamic to true to disable the "Main output of step" target, as we will control the next target steps explicitly
             ioMeta = new StepIOMeta(true, false, false, false, false, true);
 
-//            Iterator var2 = this.caseTargets.iterator();
-//            while(var2.hasNext()) {
-//                SwitchCaseTarget target = (SwitchCaseTarget)var2.next();
-//                StreamInterface stream = new Stream(StreamInterface.StreamType.TARGET, target.caseTargetStep, BaseMessages.getString(PKG, "SwitchCaseMeta.TargetStream.CaseTarget.Description", new String[]{Const.NVL(target.caseValue, "")}), StreamIcon.TARGET, target);
-//                ((StepIOMetaInterface)ioMeta).addStream(stream);
-//            }
-
             if (this.getContinueTargetStep() != null) {
                 ((StepIOMetaInterface)ioMeta).addStream(new Stream(StreamInterface.StreamType.TARGET, this.getContinueTargetStep(), BaseMessages.getString(PKG, "AwaitStepMeta.TargetStream.Continue.Description", new String[0]), StreamIcon.TARGET, (Object)null));
             }
