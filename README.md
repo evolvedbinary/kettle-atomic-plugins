@@ -3,6 +3,7 @@
 [![CI](https://github.com/nationalarchives/kettle-atomic-plugins/workflows/CI/badge.svg)](https://github.com/nationalarchives/kettle-atomic-plugins/actions?query=workflow%3ACI)
 [![Java 8](https://img.shields.io/badge/java-8+-blue.svg)](https://adoptopenjdk.net/)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](https://opensource.org/licenses/MIT)
+[![Coverage Status](https://coveralls.io/repos/github/nationalarchives/kettle-atomic-plugins/badge.svg?branch=main)](https://coveralls.io/github/nationalarchives/kettle-atomic-plugins?branch=main)
 
 This project contains plugins for [Pentaho Data Integration](https://github.com/pentaho/pentaho-kettle) (or KETTLE as it is commonly known),
 that add functionality for synchronising steps via Java Atomic values. This enables complex branching workflows where a branch can be conditionally paused
