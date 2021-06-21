@@ -27,6 +27,10 @@ import com.evolvedbinary.j8fu.tuple.Tuple2;
 import java.util.Collections;
 import java.util.Map;
 
+/**
+ * Simple interface to make some {@link AtomicStorage} test methods
+ * accessible.
+ */
 public interface AtomicStorageTestHelper {
 
     static void clear() {
@@ -37,11 +41,11 @@ public interface AtomicStorageTestHelper {
         return AtomicStorage.INSTANCE.copy();
     }
 
-    static void set(final Map<String, Tuple2<AtomicType, Object>> atomicValues) {
-        AtomicStorage.INSTANCE.set(atomicValues);
-    }
-
     static void set(final String id, final Tuple2<AtomicType, Object> atomicValue) {
         AtomicStorage.INSTANCE.set(Collections.singletonMap(id, atomicValue));
+    }
+
+    static void put(final String id, final Tuple2<AtomicType, Object> atomicValue) {
+        AtomicStorage.INSTANCE.put(id, atomicValue);
     }
 }

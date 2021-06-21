@@ -388,7 +388,7 @@ public class AwaitIT {
             } catch (final InterruptedException e) {
                 Thread.currentThread().interrupt();  // restore interrupted flag
             }
-            AtomicStorageTestHelper.set(atomicIdFieldValue, new Tuple2<>(atomicType, atomicObj2));
+            AtomicStorageTestHelper.put(atomicIdFieldValue, new Tuple2<>(atomicType, atomicObj2));
         });
 
         final TransMeta transMeta = TransTestFactory.generateTestTransformation(new Variables(), awaitStepMeta, stepName);
