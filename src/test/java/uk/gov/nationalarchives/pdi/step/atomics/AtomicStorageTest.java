@@ -22,12 +22,8 @@
  */
 package uk.gov.nationalarchives.pdi.step.atomics;
 
-import static com.evolvedbinary.j8fu.tuple.Tuple.*;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
-
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -46,70 +42,70 @@ public class AtomicStorageTest {
     @Test
     public void getAtomicInteger() {
         // 1st prepare the storage
-        final AtomicInteger atomicInt1 = new AtomicInteger(1);
-        AtomicStorageTestHelper.set("atomicInt1", Tuple(AtomicType.Integer, atomicInt1));
+        final AtomicValue atomicInt1 = new AtomicIntegerValue(1);
+        AtomicStorageTestHelper.set("atomicInt1", atomicInt1);
 
         // 2nd retrieve
-        final Object atomicInt11 = AtomicStorage.INSTANCE.getAtomic("atomicInt1", AtomicType.Integer);
+        final AtomicValue atomicInt11 = AtomicStorage.INSTANCE.getAtomic("atomicInt1", AtomicType.Integer);
         assertNotNull(atomicInt11);
-        assertTrue(atomicInt11 instanceof AtomicInteger);
+        assertTrue(atomicInt11 instanceof AtomicIntegerValue);
         assertTrue(atomicInt11 == atomicInt1);
-        assertEquals(1, ((AtomicInteger) atomicInt11).get());
+        assertEquals(1, ((AtomicIntegerValue) atomicInt11).get());
     }
 
     @Test
     public void getAtomicBoolean() {
         // 1st prepare the storage
-        final AtomicBoolean atomicBool1 = new AtomicBoolean(true);
-        AtomicStorageTestHelper.set("atomicBool1", Tuple(AtomicType.Boolean, atomicBool1));
+        final AtomicValue atomicBool1 = new AtomicBooleanValue(true);
+        AtomicStorageTestHelper.set("atomicBool1", atomicBool1);
 
         // 2nd retrieve
-        final Object atomicBool11 = AtomicStorage.INSTANCE.getAtomic("atomicBool1", AtomicType.Boolean);
+        final AtomicValue atomicBool11 = AtomicStorage.INSTANCE.getAtomic("atomicBool1", AtomicType.Boolean);
         assertNotNull(atomicBool11);
-        assertTrue(atomicBool11 instanceof AtomicBoolean);
+        assertTrue(atomicBool11 instanceof AtomicBooleanValue);
         assertTrue(atomicBool11 == atomicBool1);
-        assertTrue(((AtomicBoolean) atomicBool11).get());
+        assertTrue(((AtomicBooleanValue) atomicBool11).get());
     }
 
     @Test
     public void createThenGetAtomicInteger() {
         // 1st create
-        final Object atomicInt1 = AtomicStorage.INSTANCE.getOrCreateAtomic("atomicInt1", AtomicType.Integer, "1");
+        final AtomicValue atomicInt1 = AtomicStorage.INSTANCE.getOrCreateAtomic("atomicInt1", AtomicType.Integer, "1");
         assertNotNull(atomicInt1);
-        assertTrue(atomicInt1 instanceof AtomicInteger);
-        assertEquals(1, ((AtomicInteger) atomicInt1).get());
+        assertTrue(atomicInt1 instanceof AtomicIntegerValue);
+        assertEquals(1, ((AtomicIntegerValue) atomicInt1).get());
 
         // 2nd retrieve
-        final Object atomicInt11 = AtomicStorage.INSTANCE.getAtomic("atomicInt1", AtomicType.Integer);
+        final AtomicValue atomicInt11 = AtomicStorage.INSTANCE.getAtomic("atomicInt1", AtomicType.Integer);
         assertNotNull(atomicInt11);
-        assertTrue(atomicInt11 instanceof AtomicInteger);
+        assertTrue(atomicInt11 instanceof AtomicIntegerValue);
         assertTrue(atomicInt11 == atomicInt1);
-        assertEquals(1, ((AtomicInteger) atomicInt11).get());
+        assertEquals(1, ((AtomicIntegerValue) atomicInt11).get());
     }
 
     @Test
     public void createThenGetAtomicBoolean() {
         // 1st create
-        final Object atomicBool1 = AtomicStorage.INSTANCE.getOrCreateAtomic("atomicBool1", AtomicType.Boolean, "true");
+        final AtomicValue atomicBool1 = AtomicStorage.INSTANCE.getOrCreateAtomic("atomicBool1", AtomicType.Boolean, "true");
         assertNotNull(atomicBool1);
-        assertTrue(atomicBool1 instanceof AtomicBoolean);
-        assertTrue(((AtomicBoolean) atomicBool1).get());
+        assertTrue(atomicBool1 instanceof AtomicBooleanValue);
+        assertTrue(((AtomicBooleanValue) atomicBool1).get());
 
         // 2nd retrieve
-        final Object atomicBool11 = AtomicStorage.INSTANCE.getAtomic("atomicBool1", AtomicType.Boolean);
+        final AtomicValue atomicBool11 = AtomicStorage.INSTANCE.getAtomic("atomicBool1", AtomicType.Boolean);
         assertNotNull(atomicBool11);
-        assertTrue(atomicBool11 instanceof AtomicBoolean);
+        assertTrue(atomicBool11 instanceof AtomicBooleanValue);
         assertTrue(atomicBool11 == atomicBool1);
-        assertTrue(((AtomicBoolean) atomicBool11).get());
+        assertTrue(((AtomicBooleanValue) atomicBool11).get());
     }
 
     @Test
     public void createThenGetAtomicIntegerInvalidType() {
         // 1st create
-        final Object atomicInt1 = AtomicStorage.INSTANCE.getOrCreateAtomic("atomicInt1", AtomicType.Integer, "1");
+        final AtomicValue atomicInt1 = AtomicStorage.INSTANCE.getOrCreateAtomic("atomicInt1", AtomicType.Integer, "1");
         assertNotNull(atomicInt1);
-        assertTrue(atomicInt1 instanceof AtomicInteger);
-        assertEquals(1, ((AtomicInteger) atomicInt1).get());
+        assertTrue(atomicInt1 instanceof AtomicIntegerValue);
+        assertEquals(1, ((AtomicIntegerValue) atomicInt1).get());
 
         // 2nd retrieve
         assertThrows(IllegalArgumentException.class,
@@ -120,10 +116,10 @@ public class AtomicStorageTest {
     @Test
     public void createThenGetAtomicBooleanInvalidType() {
         // 1st create
-        final Object atomicBool1 = AtomicStorage.INSTANCE.getOrCreateAtomic("atomicBool1", AtomicType.Boolean, "true");
+        final AtomicValue atomicBool1 = AtomicStorage.INSTANCE.getOrCreateAtomic("atomicBool1", AtomicType.Boolean, "true");
         assertNotNull(atomicBool1);
-        assertTrue(atomicBool1 instanceof AtomicBoolean);
-        assertTrue(((AtomicBoolean) atomicBool1).get());
+        assertTrue(atomicBool1 instanceof AtomicBooleanValue);
+        assertTrue(((AtomicBooleanValue) atomicBool1).get());
 
         // 2nd retrieve
         assertThrows(IllegalArgumentException.class,
@@ -134,42 +130,42 @@ public class AtomicStorageTest {
     @Test
     public void getOrCreateAtomicInteger() {
         // 1st call - create
-        final Object atomicInt1 = AtomicStorage.INSTANCE.getOrCreateAtomic("atomicInt1", AtomicType.Integer, "1");
+        final AtomicValue atomicInt1 = AtomicStorage.INSTANCE.getOrCreateAtomic("atomicInt1", AtomicType.Integer, "1");
         assertNotNull(atomicInt1);
-        assertTrue(atomicInt1 instanceof AtomicInteger);
-        assertEquals(1, ((AtomicInteger) atomicInt1).get());
+        assertTrue(atomicInt1 instanceof AtomicIntegerValue);
+        assertEquals(1, ((AtomicIntegerValue) atomicInt1).get());
 
         // 2nd call - get
-        final Object atomicInt11 = AtomicStorage.INSTANCE.getOrCreateAtomic("atomicInt1", AtomicType.Integer, "2");
+        final AtomicValue atomicInt11 = AtomicStorage.INSTANCE.getOrCreateAtomic("atomicInt1", AtomicType.Integer, "2");
         assertNotNull(atomicInt11);
-        assertTrue(atomicInt11 instanceof AtomicInteger);
+        assertTrue(atomicInt11 instanceof AtomicIntegerValue);
         assertTrue(atomicInt11 == atomicInt1);
-        assertEquals(1, ((AtomicInteger) atomicInt11).get());
+        assertEquals(1, ((AtomicIntegerValue) atomicInt11).get());
     }
 
     @Test
     public void getOrCreateAtomicBoolean() {
         // 1st call - create
-        final Object atomicBool1 = AtomicStorage.INSTANCE.getOrCreateAtomic("atomicBool1", AtomicType.Boolean, "true");
+        final AtomicValue atomicBool1 = AtomicStorage.INSTANCE.getOrCreateAtomic("atomicBool1", AtomicType.Boolean, "true");
         assertNotNull(atomicBool1);
-        assertTrue(atomicBool1 instanceof AtomicBoolean);
-        assertTrue(((AtomicBoolean) atomicBool1).get());
+        assertTrue(atomicBool1 instanceof AtomicBooleanValue);
+        assertTrue(((AtomicBooleanValue) atomicBool1).get());
 
         // 2nd call - get
-        final Object atomicBool11 = AtomicStorage.INSTANCE.getOrCreateAtomic("atomicBool1", AtomicType.Boolean, "false");
+        final AtomicValue atomicBool11 = AtomicStorage.INSTANCE.getOrCreateAtomic("atomicBool1", AtomicType.Boolean, "false");
         assertNotNull(atomicBool11);
-        assertTrue(atomicBool11 instanceof AtomicBoolean);
+        assertTrue(atomicBool11 instanceof AtomicBooleanValue);
         assertTrue(atomicBool11 == atomicBool1);
-        assertTrue(((AtomicBoolean) atomicBool11).get());
+        assertTrue(((AtomicBooleanValue) atomicBool11).get());
     }
 
     @Test
     public void getOrCreateAtomicIntegerInvalidType() {
         // 1st call - create
-        final Object atomicInt1 = AtomicStorage.INSTANCE.getOrCreateAtomic("atomicInt1", AtomicType.Integer, "1");
+        final AtomicValue atomicInt1 = AtomicStorage.INSTANCE.getOrCreateAtomic("atomicInt1", AtomicType.Integer, "1");
         assertNotNull(atomicInt1);
-        assertTrue(atomicInt1 instanceof AtomicInteger);
-        assertEquals(1, ((AtomicInteger) atomicInt1).get());
+        assertTrue(atomicInt1 instanceof AtomicIntegerValue);
+        assertEquals(1, ((AtomicIntegerValue) atomicInt1).get());
 
         // 2nd call - get
         assertThrows(IllegalArgumentException.class,
@@ -180,10 +176,10 @@ public class AtomicStorageTest {
     @Test
     public void getOrCreateAtomicBooleanInvalidType() {
         // 1st call - create
-        final Object atomicBool1 = AtomicStorage.INSTANCE.getOrCreateAtomic("atomicBool1", AtomicType.Boolean, "true");
+        final AtomicValue atomicBool1 = AtomicStorage.INSTANCE.getOrCreateAtomic("atomicBool1", AtomicType.Boolean, "true");
         assertNotNull(atomicBool1);
-        assertTrue(atomicBool1 instanceof AtomicBoolean);
-        assertTrue(((AtomicBoolean) atomicBool1).get());
+        assertTrue(atomicBool1 instanceof AtomicBooleanValue);
+        assertTrue(((AtomicBooleanValue) atomicBool1).get());
 
         // 2nd call - get
         assertThrows(IllegalArgumentException.class,
@@ -199,10 +195,10 @@ public class AtomicStorageTest {
     @Test
     public void remove() {
         // 1st call - create
-        final Object atomicBool1 = AtomicStorage.INSTANCE.getOrCreateAtomic("atomicBool1", AtomicType.Boolean, "true");
+        final AtomicValue atomicBool1 = AtomicStorage.INSTANCE.getOrCreateAtomic("atomicBool1", AtomicType.Boolean, "true");
         assertNotNull(atomicBool1);
-        assertTrue(atomicBool1 instanceof AtomicBoolean);
-        assertTrue(((AtomicBoolean) atomicBool1).get());
+        assertTrue(atomicBool1 instanceof AtomicBooleanValue);
+        assertTrue(((AtomicBooleanValue) atomicBool1).get());
 
         // 2nd call - remove
         assertTrue(AtomicStorage.INSTANCE.removeAtomic("atomicBool1"));

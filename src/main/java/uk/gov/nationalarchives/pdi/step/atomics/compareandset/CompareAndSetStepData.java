@@ -28,6 +28,7 @@ import org.pentaho.di.trans.step.BaseStepData;
 import org.pentaho.di.trans.step.StepDataInterface;
 import uk.gov.nationalarchives.pdi.step.atomics.AtomicStorage;
 import uk.gov.nationalarchives.pdi.step.atomics.AtomicType;
+import uk.gov.nationalarchives.pdi.step.atomics.AtomicValue;
 
 import javax.annotation.Nullable;
 
@@ -47,11 +48,12 @@ public class CompareAndSetStepData extends BaseStepData implements StepDataInter
         super();
     }
 
-    public @Nullable Object getAtomic(final String id, final AtomicType atomicType) throws IllegalStateException {
+    public @Nullable
+    AtomicValue getAtomic(final String id, final AtomicType atomicType) throws IllegalStateException {
         return AtomicStorage.INSTANCE.getAtomic(id, atomicType);
     }
 
-    public Object getOrCreateAtomic(final String id, final AtomicType atomicType, final String initialValue) throws IllegalStateException {
+    public AtomicValue getOrCreateAtomic(final String id, final AtomicType atomicType, final String initialValue) throws IllegalStateException {
         return AtomicStorage.INSTANCE.getOrCreateAtomic(id, atomicType, initialValue);
     }
 

@@ -24,19 +24,14 @@ package uk.gov.nationalarchives.pdi.step.atomics;
 
 import com.evolvedbinary.j8fu.function.ConsumerE;
 import com.evolvedbinary.j8fu.function.FunctionE;
-import com.evolvedbinary.j8fu.tuple.Tuple2;
 import net.jcip.annotations.GuardedBy;
 import net.jcip.annotations.ThreadSafe;
 
 import javax.annotation.Nullable;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
-
-import static com.evolvedbinary.j8fu.tuple.Tuple.*;
 
 /**
  * In-memory storage for Atomic Values.
@@ -67,18 +62,18 @@ public class AtomicStorage {
      *
      * @throws IllegalArgumentException if the the Atomic Value exists but has a different AtomicType to that which was requested
      */
-    public @Nullable Object getAtomic(final String id, final AtomicType atomicType) throws IllegalStateException {
-        final Tuple2<AtomicType, Object> typedAtomic = storage.read(store -> store.get(id));
+    public @Nullable AtomicValue getAtomic(final String id, final AtomicType atomicType) throws IllegalStateException {
+        final AtomicValue atomicValue = storage.read(store -> store.get(id));
 
-        if (typedAtomic == null) {
+        if (atomicValue == null) {
             return null;
         }
 
-        if (atomicType != typedAtomic._1) {
-            throw new IllegalArgumentException("Requested type: " + atomicType + " but found type: " + typedAtomic._1 + " for id: " + id);
+        if (atomicType != atomicValue.getType()) {
+            throw new IllegalArgumentException("Requested type: " + atomicType + " but found type: " + atomicValue.getType() + " for id: " + id);
         }
 
-        return typedAtomic._2;
+        return atomicValue;
     }
 
     /**
@@ -93,15 +88,15 @@ public class AtomicStorage {
      *
      * @throws IllegalArgumentException if the the Atomic Value exists but has a different AtomicType to that which was requested
      */
-    public Object getOrCreateAtomic(final String id, final AtomicType atomicType, final String initialValue) throws IllegalStateException {
+    public AtomicValue getOrCreateAtomic(final String id, final AtomicType atomicType, final String initialValue) throws IllegalStateException {
 
         // 1) optimistically try and get the value
-        final Tuple2<AtomicType, Object> existingAtomic = storage.read(store -> store.get(id));
+        final AtomicValue existingAtomic = storage.read(store -> store.get(id));
         if (existingAtomic != null) {
-            if (atomicType != existingAtomic._1) {
-                throw new IllegalArgumentException("Requested type: " + atomicType + " but found type: " + existingAtomic._1 + " for id: " + id);
+            if (atomicType != existingAtomic.getType()) {
+                throw new IllegalArgumentException("Requested type: " + atomicType + " but found type: " + existingAtomic.getType() + " for id: " + id);
             }
-            return existingAtomic._2;
+            return existingAtomic;
         }
 
         // 2) no such value, lock for write
@@ -110,23 +105,23 @@ public class AtomicStorage {
             // 2.1) we must try and read the value again as this
             // thread may have been preempted between releasing
             // the read lock and taking the write lock
-            Tuple2<AtomicType, Object> atomic = store.get(id);
+            AtomicValue atomic = store.get(id);
             if (atomic != null) {
-                if (atomicType != atomic._1) {
-                    throw new IllegalArgumentException("Requested type: " + atomicType + " but found type: " + atomic._1 + " for id: " + id);
+                if (atomicType != atomic.getType()) {
+                    throw new IllegalArgumentException("Requested type: " + atomicType + " but found type: " + atomic.getType() + " for id: " + id);
                 }
-                return atomic._2;
+                return atomic;
             }
 
             // 3) still no value, so create one
             atomicType.checkValidValue(initialValue);
             switch (atomicType) {
                 case Boolean:
-                    atomic = Tuple(atomicType, new AtomicBoolean(Boolean.parseBoolean(initialValue)));
+                    atomic = new AtomicBooleanValue(Boolean.parseBoolean(initialValue));
                     break;
 
                 case Integer:
-                    atomic = Tuple(atomicType, new AtomicInteger(Integer.parseInt(initialValue)));
+                    atomic = new AtomicIntegerValue(Integer.parseInt(initialValue));
                     break;
 
                 default:
@@ -135,7 +130,7 @@ public class AtomicStorage {
 
             // 3.1) store the atomic
             store.put(id, atomic);
-            return atomic._2;
+            return atomic;
         });
     }
 
@@ -159,7 +154,7 @@ public class AtomicStorage {
      *
      * @return a copy of the storage map
      */
-    Map<String, Tuple2<AtomicType, Object>> copy() {
+    Map<String, AtomicValue> copy() {
         return storage.read(HashMap::new);
     }
 
@@ -170,7 +165,7 @@ public class AtomicStorage {
      *
      * @param atomicValues the values to set the storage to
      */
-    void set(final Map<String, Tuple2<AtomicType, Object>> atomicValues) {
+    void set(final Map<String, AtomicValue> atomicValues) {
         storage.update(store -> {
             store.clear();
             store.putAll(atomicValues);
@@ -187,7 +182,7 @@ public class AtomicStorage {
      *
      * @return the previous atomic value associated with the id
      */
-    @Nullable Tuple2<AtomicType, Object> put(final String id, final Tuple2<AtomicType, Object> atomicValue) {
+    @Nullable AtomicValue put(final String id, final AtomicValue atomicValue) {
         return storage.write(store -> store.put(id, atomicValue));
     }
 
@@ -195,9 +190,9 @@ public class AtomicStorage {
     private static class Storage {
         private final ReadWriteLock lock = new ReentrantReadWriteLock();
         @GuardedBy("lock")
-        private final Map<String, Tuple2<AtomicType, Object>> store = new HashMap<>();
+        private final Map<String, AtomicValue> store = new HashMap<>();
 
-        <T, E extends Throwable> T read(final FunctionE<Map<String, Tuple2<AtomicType, Object>>, T, E> reader) throws E {
+        <T, E extends Throwable> T read(final FunctionE<Map<String, AtomicValue>, T, E> reader) throws E {
             this.lock.readLock().lock();
             try {
                 return reader.apply(store);
@@ -206,7 +201,7 @@ public class AtomicStorage {
             }
         }
 
-        <T, E extends Throwable> T write(final FunctionE<Map<String, Tuple2<AtomicType, Object>>, T, E> writer) throws E {
+        <T, E extends Throwable> T write(final FunctionE<Map<String, AtomicValue>, T, E> writer) throws E {
             this.lock.writeLock().lock();
             try {
                 return writer.apply(store);
@@ -215,7 +210,7 @@ public class AtomicStorage {
             }
         }
 
-        <E extends Throwable> void update(final ConsumerE<Map<String, Tuple2<AtomicType, Object>>, E> writer) throws E {
+        <E extends Throwable> void update(final ConsumerE<Map<String, AtomicValue>, E> writer) throws E {
             this.lock.writeLock().lock();
             try {
                 writer.accept(store);

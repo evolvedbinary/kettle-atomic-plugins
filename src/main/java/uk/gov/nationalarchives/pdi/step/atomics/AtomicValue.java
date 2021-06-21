@@ -22,28 +22,19 @@
  */
 package uk.gov.nationalarchives.pdi.step.atomics;
 
-import java.util.Collections;
-import java.util.Map;
-
 /**
- * Simple interface to make some {@link AtomicStorage} test methods
- * accessible.
+ * Simple Type Class to provide a more
+ * meaningful super-type than just Object when
+ * abstracting operations of both
+ * {@link java.util.concurrent.atomic.AtomicBoolean} and
+ * {@link java.util.concurrent.atomic.AtomicInteger}.
  */
-public interface AtomicStorageTestHelper {
+public interface AtomicValue {
 
-    static void clear() {
-        AtomicStorage.INSTANCE.clear();
-    }
-
-    static Map<String, AtomicValue> copy() {
-        return AtomicStorage.INSTANCE.copy();
-    }
-
-    static void set(final String id, final AtomicValue atomicValue) {
-        AtomicStorage.INSTANCE.set(Collections.singletonMap(id, atomicValue));
-    }
-
-    static void put(final String id, final AtomicValue atomicValue) {
-        AtomicStorage.INSTANCE.put(id, atomicValue);
-    }
+    /**
+     * Get the type tag of the atomic value.
+     *
+     * @return the type tag of the atomic value;
+     */
+    AtomicType getType();
 }
