@@ -20,7 +20,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package uk.gov.nationalarchives.pdi.step.atomics.compareandset;
+package uk.gov.nationalarchives.pdi.step.atomics;
 
 import org.pentaho.di.core.RowSet;
 

@@ -274,7 +274,7 @@ public class CompareAndSetStep extends BaseStep implements StepInterface {
             // send to specific target for CAS success
             final Set<RowSet> casTargetRowSets = data.getCasOutputRowSets().get(casTarget.getCompareValue());
             if (casTargetRowSets == null || casTargetRowSets.isEmpty()) {
-                throw new KettleException(BaseMessages.getString(PKG, "CompareAndSetStep.Log.UnableToFindTargetRowSetForStep", new Object[] { casTarget.getTargetStep() }));
+                throw new KettleException(BaseMessages.getString(PKG, "CompareAndSetStep.Log.UnableToFindTargetRowSetForStep", new Object[] { casTarget.getTargetStep() != null ? casTarget.getTargetStep().getName() : casTarget.getTargetStepname() }));
             }
 
             for (final RowSet casTargetRowSet : casTargetRowSets) {
@@ -341,18 +341,22 @@ public class CompareAndSetStep extends BaseStep implements StepInterface {
             throw new KettleException(BaseMessages.getString( PKG, "CompareAndSetStep.Exception.UnableToFindFieldName", atomicIdFieldName));
         }
 
-        try {
+//        try {
             final StepIOMetaInterface ioMeta = meta.getStepIOMeta();
 
             // There is one or many CAS target for each target stream.
-            // The ioMeta object also has optional target streams for: continue, skip, and timeout.
 
             final List<StreamInterface> targetStreams = ioMeta.getTargetStreams();
             for (int i = 0; i < targetStreams.size(); i++) {
-                final CompareAndSetTarget compareAndSetValue = (CompareAndSetTarget) targetStreams.get(i).getSubject();
-                if (compareAndSetValue == null) {
-                    break; // Skip over default option
+                final Object subject = targetStreams.get(i).getSubject();
+                if (subject == null) {
+                    continue;  // Skip over default option
                 }
+                if (!(subject instanceof CompareAndSetTarget)) {
+                    continue;  // Skip over other target type
+                }
+
+                final CompareAndSetTarget compareAndSetValue = (CompareAndSetTarget) subject;
 
                 final String casTargetStepName = compareAndSetValue.getTargetStep() != null ? compareAndSetValue.getTargetStep().getName() : compareAndSetValue.getTargetStepname();
                 if (isNullOrEmpty(casTargetStepName)) {
@@ -368,6 +372,9 @@ public class CompareAndSetStep extends BaseStep implements StepInterface {
                 // store the compare value and the rowset
                 data.getCasOutputRowSets().put(compareAndSetValue.getCompareValue(), rowSet);
             }
+
+
+            // The ioMeta object also has optional target streams for: continue, skip, and timeout.
 
             final String metaContinueTargetStepName = meta.getContinueTargetStep() != null ? meta.getContinueTargetStep().getName() : meta.getContinueTargetStepname();
             if (isNotEmpty(metaContinueTargetStepName)) {
@@ -398,8 +405,8 @@ public class CompareAndSetStep extends BaseStep implements StepInterface {
                     throw new KettleException(BaseMessages.getString(PKG, "CompareAndSetStep.Log.UnableToFindTimeoutTargetRowSetForStep", new Object[] { metaTimeoutTargetStepName }));
                 }
             }
-        } catch (final Exception e) {
-            throw new KettleException(e);
-        }
+//        } catch (final Exception e) {
+//            throw new KettleException(e);
+//        }
     }
 }

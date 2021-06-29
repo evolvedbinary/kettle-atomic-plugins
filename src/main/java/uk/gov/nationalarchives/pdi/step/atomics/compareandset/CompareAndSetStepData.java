@@ -29,6 +29,7 @@ import org.pentaho.di.trans.step.StepDataInterface;
 import uk.gov.nationalarchives.pdi.step.atomics.AtomicStorage;
 import uk.gov.nationalarchives.pdi.step.atomics.AtomicType;
 import uk.gov.nationalarchives.pdi.step.atomics.AtomicValue;
+import uk.gov.nationalarchives.pdi.step.atomics.OutputMap;
 
 import javax.annotation.Nullable;
 
@@ -38,7 +39,6 @@ public class CompareAndSetStepData extends BaseStepData implements StepDataInter
     private RowMetaInterface outputRowMeta;
     private String atomicIdFieldName;
     private int atomicIdFieldIndex;
-//    private ValueMetaInterface atomicIdFieldInputValueMeta;
     private final OutputMap casOutputRowSets = new OutputMap();
     private RowSet continueOutputRowSet = null;
     private RowSet skipOutputRowSet = null;
@@ -81,14 +81,6 @@ public class CompareAndSetStepData extends BaseStepData implements StepDataInter
     public void setAtomicIdFieldIndex(final int atomicIdFieldIndex) {
         this.atomicIdFieldIndex = atomicIdFieldIndex;
     }
-
-//    public ValueMetaInterface getAtomicIdFieldInputValueMeta() {
-//        return atomicIdFieldInputValueMeta;
-//    }
-//
-//    public void setAtomicIdFieldInputValueMeta(final ValueMetaInterface atomicIdFieldInputValueMeta) {
-//        this.atomicIdFieldInputValueMeta = atomicIdFieldInputValueMeta;
-//    }
 
     public OutputMap getCasOutputRowSets() {
         return casOutputRowSets;

@@ -335,10 +335,13 @@ public class CompareAndSetStepMeta extends BaseStepMeta implements StepMetaInter
         final StepIOMetaInterface ioMeta = this.getStepIOMeta();
         final List<StreamInterface> targetStreams = ioMeta.getTargetStreams();
         for (final StreamInterface targetStream : targetStreams) {
-            final CompareAndSetTarget compareAndSetValue = (CompareAndSetTarget)targetStream.getSubject();
-            if (compareAndSetValue != null && compareAndSetValue.getTargetStep() == null) {
-                final CheckResult cr = new CheckResult(CheckResultInterface.TYPE_RESULT_ERROR, BaseMessages.getString(PKG, "CompareAndSetStepMeta.CheckResult.TargetStepInvalid", new String[]{"false", compareAndSetValue.getTargetStepname()}), stepMeta);
-                remarks.add(cr);
+            final Object subject = targetStream.getSubject();
+            if (subject != null && subject instanceof CompareAndSetTarget) {
+                final CompareAndSetTarget compareAndSetValue = (CompareAndSetTarget) subject;
+                if (compareAndSetValue.getTargetStep() == null) {
+                    final CheckResult cr = new CheckResult(CheckResultInterface.TYPE_RESULT_ERROR, BaseMessages.getString(PKG, "CompareAndSetStepMeta.CheckResult.TargetStepInvalid", new String[]{"false", compareAndSetValue.getTargetStepname()}), stepMeta);
+                    remarks.add(cr);
+                }
             }
         }
 
@@ -418,10 +421,13 @@ public class CompareAndSetStepMeta extends BaseStepMeta implements StepMetaInter
     public void searchInfoAndTargetSteps(final List<StepMeta> steps) {
         final List<StreamInterface> targetStreams = this.getStepIOMeta().getTargetStreams();
         for (final StreamInterface targetStream : targetStreams) {
-            final CompareAndSetTarget compareAndSetValue = (CompareAndSetTarget)targetStream.getSubject();
-            if (compareAndSetValue != null) {
+            final Object subject = targetStream.getSubject();
+            if (subject != null && subject instanceof CompareAndSetTarget) {
+                final CompareAndSetTarget compareAndSetValue = (CompareAndSetTarget) subject;
                 final StepMeta stepMeta = StepMeta.findStep(steps, compareAndSetValue.getTargetStepname());
                 compareAndSetValue.setTargetStep(stepMeta);
+            } else {
+                log.logMinimal("Unexpected Target Stream Subject Type: " + subject);
             }
         }
 
@@ -460,7 +466,12 @@ public class CompareAndSetStepMeta extends BaseStepMeta implements StepMetaInter
             this.setTimeoutTargetStep(stream.getStepMeta());
 
         } else if (stream == NEW_CAS_TARGET_STREAM) {
-            final CompareAndSetTarget compareAndSetValue = new CompareAndSetTarget("compare1", "set1", stream.getStepMeta());
+            final CompareAndSetTarget compareAndSetValue;
+            if (atomicType == AtomicType.Integer) {
+                compareAndSetValue = new CompareAndSetTarget("12345", "54321", stream.getStepMeta());
+            } else {
+                compareAndSetValue = new CompareAndSetTarget("true", "false", stream.getStepMeta());
+            }
             if (this.compareAndSetValues == null) {
                 this.compareAndSetValues = new ArrayList<>(1);
             }
