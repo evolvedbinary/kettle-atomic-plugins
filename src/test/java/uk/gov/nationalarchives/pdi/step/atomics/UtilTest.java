@@ -45,6 +45,26 @@ public class UtilTest {
     }
 
     @Test
+    public void strNullIfNull() {
+        assertEquals("null", Util.strNullIfNull(null));
+        assertEquals("", Util.strNullIfNull(""));
+        assertEquals("a", Util.strNullIfNull("a"));
+        assertEquals("abc", Util.strNullIfNull("abc"));
+        assertEquals("null", Util.strNullIfNull("null"));
+        assertEquals("nullify", Util.strNullIfNull("nullify"));
+    }
+
+    @Test
+    public void nullIfStrNull() {
+        assertNull(Util.nullIfStrNull(null));
+        assertEquals("", Util.nullIfStrNull(""));
+        assertEquals("a", Util.nullIfStrNull("a"));
+        assertEquals("abc", Util.nullIfStrNull("abc"));
+        assertNull(Util.nullIfStrNull("null"));
+        assertEquals("nullify", Util.nullIfStrNull("nullify"));
+    }
+
+    @Test
     public void isNullOrEmptyString() {
         assertTrue(Util.isNullOrEmpty(null));
         assertTrue(Util.isNullOrEmpty(""));

@@ -78,8 +78,7 @@ public class AwaitIT {
         awaitStepMeta.setActionIfNoAtomic(ActionIfNoAtomic.Initialise);
         awaitStepMeta.setAtomicType(atomicType);
         awaitStepMeta.setInitialiseAtomicValue(initialiseValue);
-        awaitStepMeta.setAtomicValue(initialiseValue);
-        awaitStepMeta.setAtomicValueTargetStepname(TransTestFactory.DUMMY_STEPNAME);
+        awaitStepMeta.setAwaitValues(Arrays.asList(new AwaitTarget(initialiseValue, false, TransTestFactory.DUMMY_STEPNAME)));
 
         final TransMeta transMeta = TransTestFactory.generateTestTransformation(new Variables(), awaitStepMeta, stepName);
         final List<RowMetaAndData> result = TransTestFactory.executeTestTransformation(
@@ -131,8 +130,7 @@ public class AwaitIT {
         awaitStepMeta.setActionIfNoAtomic(ActionIfNoAtomic.Initialise);
         awaitStepMeta.setAtomicType(atomicType);
         awaitStepMeta.setInitialiseAtomicValue(initialiseValue);
-        awaitStepMeta.setAtomicValue(existingAtomicValue);
-        awaitStepMeta.setAtomicValueTargetStepname(TransTestFactory.DUMMY_STEPNAME);
+        awaitStepMeta.setAwaitValues(Arrays.asList(new AwaitTarget(existingAtomicValue, false, TransTestFactory.DUMMY_STEPNAME)));
 
         final TransMeta transMeta = TransTestFactory.generateTestTransformation(new Variables(), awaitStepMeta, stepName);
         final List<RowMetaAndData> result = TransTestFactory.executeTestTransformation(
@@ -243,8 +241,7 @@ public class AwaitIT {
         awaitStepMeta.setActionIfNoAtomic(ActionIfNoAtomic.Wait);
         awaitStepMeta.setWaitAtomicTimeout(5000);  // a suitably long time to enable us to set it
         awaitStepMeta.setWaitAtomicCheckPeriod(50);
-        awaitStepMeta.setAtomicValue(waitForValue);
-        awaitStepMeta.setAtomicValueTargetStepname(TransTestFactory.DUMMY_STEPNAME);
+        awaitStepMeta.setAwaitValues(Arrays.asList(new AwaitTarget(waitForValue, false, TransTestFactory.DUMMY_STEPNAME)));
 
         final AtomicValue atomicValue;
         if (atomicType == AtomicType.Integer) {
@@ -367,8 +364,7 @@ public class AwaitIT {
         awaitStepMeta.setAtomicType(atomicType);
         awaitStepMeta.setWaitLoopTimeout(5000);  // a suitably long time to enable us to set it
         awaitStepMeta.setWaitLoopCheckPeriod(50);
-        awaitStepMeta.setAtomicValue(updatedAtomicValue);
-        awaitStepMeta.setAtomicValueTargetStepname(TransTestFactory.DUMMY_STEPNAME);
+        awaitStepMeta.setAwaitValues(Arrays.asList(new AwaitTarget(updatedAtomicValue, false, TransTestFactory.DUMMY_STEPNAME)));
 
         final AtomicValue atomicValue2;
         if (atomicType == AtomicType.Integer) {
@@ -448,7 +444,7 @@ public class AwaitIT {
         awaitStepMeta.setAtomicType(atomicType);
         awaitStepMeta.setWaitLoopTimeout(200);
         awaitStepMeta.setWaitAtomicCheckPeriod(50);
-        awaitStepMeta.setAtomicValue(awaitAtomicValue);
+        awaitStepMeta.setAwaitValues(Arrays.asList(new AwaitTarget(awaitAtomicValue, false, AwaitStep.IGNORE_STEPNAME_FOR_TEST)));
 //        awaitStepMeta.setAtomicValueTargetStepname(TransTestFactory.DUMMY_STEPNAME);
         awaitStepMeta.setTimeoutTargetStepname(TransTestFactory.DUMMY_STEPNAME);
 

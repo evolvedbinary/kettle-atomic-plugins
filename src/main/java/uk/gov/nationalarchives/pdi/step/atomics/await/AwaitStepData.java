@@ -29,6 +29,7 @@ import org.pentaho.di.trans.step.StepDataInterface;
 import uk.gov.nationalarchives.pdi.step.atomics.AtomicStorage;
 import uk.gov.nationalarchives.pdi.step.atomics.AtomicType;
 import uk.gov.nationalarchives.pdi.step.atomics.AtomicValue;
+import uk.gov.nationalarchives.pdi.step.atomics.OutputMap;
 
 import javax.annotation.Nullable;
 
@@ -39,7 +40,7 @@ public class AwaitStepData extends BaseStepData implements StepDataInterface {
     private String atomicIdFieldName;
     private int atomicIdFieldIndex;
     private RowSet continueOutputRowSet = null;
-    private RowSet atomicValueOutputRowSet = null;
+    private final OutputMap atomicValueOutputRowSets = new OutputMap();
     private RowSet timeoutOutputRowSet = null;
 
     public AwaitStepData() {
@@ -92,12 +93,8 @@ public class AwaitStepData extends BaseStepData implements StepDataInterface {
         this.continueOutputRowSet = continueOutputRowSet;
     }
 
-    public RowSet getAtomicValueOutputRowSet() {
-        return atomicValueOutputRowSet;
-    }
-
-    public void setAtomicValueOutputRowSet(final RowSet atomicValueOutputRowSet) {
-        this.atomicValueOutputRowSet = atomicValueOutputRowSet;
+    public OutputMap getAtomicValueOutputRowSets() {
+        return atomicValueOutputRowSets;
     }
 
     public RowSet getTimeoutOutputRowSet() {

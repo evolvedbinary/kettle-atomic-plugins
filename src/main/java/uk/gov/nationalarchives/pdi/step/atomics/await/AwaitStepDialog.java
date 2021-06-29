@@ -42,13 +42,18 @@ import org.pentaho.di.trans.step.StepMeta;
 import org.pentaho.di.ui.core.ConstUI;
 import org.pentaho.di.ui.core.FormDataBuilder;
 import org.pentaho.di.ui.core.gui.GUIResource;
+import org.pentaho.di.ui.core.widget.ColumnInfo;
+import org.pentaho.di.ui.core.widget.TableView;
 import org.pentaho.di.ui.core.widget.TextVar;
 import org.pentaho.di.ui.trans.step.BaseStepDialog;
 import uk.gov.nationalarchives.pdi.step.atomics.ActionIfNoAtomic;
 import uk.gov.nationalarchives.pdi.step.atomics.AtomicType;
 import uk.gov.nationalarchives.pdi.step.atomics.NumberVerifyListener;
 
-import static uk.gov.nationalarchives.pdi.step.atomics.Util.isNullOrEmpty;
+import java.util.ArrayList;
+import java.util.List;
+
+import static uk.gov.nationalarchives.pdi.step.atomics.Util.*;
 
 public class AwaitStepDialog extends BaseStepDialog implements StepDialogInterface {
 
@@ -82,13 +87,11 @@ public class AwaitStepDialog extends BaseStepDialog implements StepDialogInterfa
     private Text wWaitAtomicCheckPeriodField;
     private Label wWaitAtomicTimeoutLabel;
     private Text wWaitAtomicTimeoutField;
-    private Label wAtomicValueLabel;
-    private Combo wAtomicValueBooleanField;
-    private TextVar wAtomicValueIntegerField;
-    private Label wAtomicValueTargetLabel;
-    private CCombo wAtomicValueTargetField;
-    private Label wDiscardAtomicLabel;
-    private Button wDiscardAtomicCheckbox;
+    private TableView wAwaitTableView;
+    private ColumnInfo ciAtomicValue;
+    private ColumnInfo ciDiscardAtomic;
+    private ColumnInfo ciTargetStep;
+
     private Label wWaitLoopCheckPeriodLabel;
     private Text wWaitLoopCheckPeriodField;
     private Label wWaitLoopTimeoutLabel;
@@ -231,8 +234,30 @@ public class AwaitStepDialog extends BaseStepDialog implements StepDialogInterfa
                 wInitialiseAtomicBooleanField.setVisible(ActionIfNoAtomic.Initialise == actionIfNoAtomic && atomicType == AtomicType.Boolean);
                 wInitialiseAtomicIntegerField.setVisible(ActionIfNoAtomic.Initialise == actionIfNoAtomic && atomicType == AtomicType.Integer);
 
-                wAtomicValueBooleanField.setVisible(atomicType == AtomicType.Boolean);
-                wAtomicValueIntegerField.setVisible(atomicType == AtomicType.Integer);
+                for (int rowIdx = 0; rowIdx < wAwaitTableView.getItemCount(); rowIdx++) {
+                    String atomicValue = wAwaitTableView.getItem(rowIdx, 1);
+                    atomicValue = strNullIfNull(atomicValue);
+
+                    if (!"null".equals(atomicValue)) {
+                        if (AtomicType.Boolean == atomicType) {
+                            atomicValue = unknownStrToBooleanStr(atomicValue);
+
+                        } else if (AtomicType.Integer == atomicType) {
+                            atomicValue = unknownStrToIntegerStr(atomicValue);
+                        }
+                    }
+
+                    wAwaitTableView.setText(atomicValue, 1, rowIdx);
+                }
+
+                // TODO(AR) can't figure out how to dynamically change the types of the table columns
+                /*
+                // use CCOMBO for true/false
+                ciAtomicValue.setFieldTypeColumn(atomicType == AtomicType.Boolean ? ColumnInfo.COLUMN_TYPE_CCOMBO : ColumnInfo.COLUMN_TYPE_TEXT);
+                wAwaitTableView.setColumnInfo(0, ciAtomicValue);
+                wAwaitTableView.redraw();
+                wAwaitTableView.update();
+                */
             }
         });
         final FormData fdAtomicTypeField = new FormDataBuilder().left(wAtomicTypeLabel, LABEL_SPACING)
@@ -362,71 +387,40 @@ public class AwaitStepDialog extends BaseStepDialog implements StepDialogInterfa
                 .result();
         wWaitAtomicTimeoutField.setLayoutData(fdWaitAtomicTimeoutField);
 
-        // atomic value label/field (the field can be 1 of 3 visible fields, 1 for each atomic type)
-        wAtomicValueLabel = new Label(settingsGroup, SWT.LEFT);
-        props.setLook(wAtomicValueLabel);
-        wAtomicValueLabel.setText(BaseMessages.getString(PKG, "AwaitStepDialog.TextFieldAtomicValue"));
-        final FormData fdAtomicValueLabel = new FormDataBuilder().left()
-                .top(wActionIfNoAtomicLabel, ELEMENT_SPACING)
-                .result();
-        wAtomicValueLabel.setLayoutData(fdAtomicValueLabel);
+        // await table
+        ciAtomicValue = new ColumnInfo(
+                BaseMessages.getString(PKG, "AwaitStepDialog.AtomicValue"),
+                ColumnInfo.COLUMN_TYPE_TEXT,
+                false
+        );
 
-        wAtomicValueBooleanField = new Combo(settingsGroup, SWT.DROP_DOWN | SWT.READ_ONLY | SWT.SINGLE | SWT.LEFT | SWT.BORDER);
-        wAtomicValueBooleanField.add("false");
-        wAtomicValueBooleanField.add("true");
-        props.setLook(wAtomicValueBooleanField);
-        wAtomicValueBooleanField.addModifyListener(lsFieldsModify);
-        final FormData fdAtomicValueBooleanField = new FormDataBuilder().left(wAtomicValueLabel, LABEL_SPACING)
-                .top(wActionIfNoAtomicLabel, ELEMENT_SPACING)
-                .width(SMALL_FIELD)
-                .result();
-        wAtomicValueBooleanField.setLayoutData(fdAtomicValueBooleanField);
+        ciDiscardAtomic = new ColumnInfo(
+                BaseMessages.getString(PKG, "AwaitStepDialog.DiscardAtomic"),
+                ColumnInfo.COLUMN_TYPE_CCOMBO,
+                new String[] {"true", "false"}
+        );
 
-        wAtomicValueIntegerField = new TextVar(transMeta, settingsGroup, SWT.SINGLE | SWT.LEFT | SWT.BORDER);
-        props.setLook(wAtomicValueIntegerField);
-        wAtomicValueIntegerField.addModifyListener(lsFieldsModify);
-        wAtomicValueIntegerField.getTextWidget().addVerifyListener(new NumberVerifyListener(Integer::parseInt));
-        final FormData fdAtomicValueIntegerField = new FormDataBuilder().left(wAtomicValueLabel, LABEL_SPACING)
-                .top(wActionIfNoAtomicLabel, ELEMENT_SPACING)
-                .width(SMALL_FIELD)
-                .result();
-        wAtomicValueIntegerField.setLayoutData(fdAtomicValueIntegerField);
+        ciTargetStep = new ColumnInfo(
+                BaseMessages.getString(PKG, "AwaitStepDialog.TargetStep"),
+                ColumnInfo.COLUMN_TYPE_CCOMBO,
+                nextStepNames
+        );
 
-        // atomic value target label/field
-        wAtomicValueTargetLabel = new Label(settingsGroup, SWT.LEFT);
-        props.setLook(wAtomicValueTargetLabel);
-        wAtomicValueTargetLabel.setText(BaseMessages.getString(PKG, "AwaitStepDialog.TextFieldAtomicValueTarget"));
-        final FormData fdAtomicValueTargetLabel = new FormDataBuilder().left(wAtomicValueIntegerField, LABEL_SPACING)
-                .top(wActionIfNoAtomicLabel, ELEMENT_SPACING)
-                .result();
-        wAtomicValueTargetLabel.setLayoutData(fdAtomicValueTargetLabel);
+        final ColumnInfo[] awaitTableColumns = {
+                ciAtomicValue,
+                ciDiscardAtomic,
+                ciTargetStep
+        };
 
-        wAtomicValueTargetField = new CCombo(settingsGroup, SWT.DROP_DOWN | SWT.SINGLE | SWT.LEFT | SWT.BORDER);
-        wAtomicValueTargetField.setItems(nextStepNames);
-        props.setLook(wAtomicValueTargetField);
-        wAtomicValueTargetField.addModifyListener(lsFieldsModify);
-        final FormData fdAtomicValueTargetField = new FormDataBuilder().left(wAtomicValueTargetLabel, LABEL_SPACING)
+        wAwaitTableView = new TableView(
+                transMeta, settingsGroup, SWT.BORDER | SWT.FULL_SELECTION | SWT.MULTI | SWT.V_SCROLL | SWT.H_SCROLL,
+                awaitTableColumns,1, lsFieldsModify, props);
+        final FormData fdAwaitTableView = new FormDataBuilder().left()
                 .top(wActionIfNoAtomicLabel, ELEMENT_SPACING)
-                .width(MEDIUM_FIELD)
+                .fullWidth()
+                .height(ELEMENT_SPACING * 10)
                 .result();
-        wAtomicValueTargetField.setLayoutData(fdAtomicValueTargetField);
-
-        // discard atomic label/checkbox
-        wDiscardAtomicLabel = new Label(settingsGroup, SWT.LEFT);
-        props.setLook(wDiscardAtomicLabel);
-        wDiscardAtomicLabel.setText(BaseMessages.getString(PKG, "AwaitStepDialog.CheckboxDiscardAtomic"));
-        final FormData fdDiscardAtomicLabel = new FormDataBuilder().left(wAtomicValueTargetField, LABEL_SPACING)
-                .top(wActionIfNoAtomicLabel, ELEMENT_SPACING)
-                .result();
-        wDiscardAtomicLabel.setLayoutData(fdDiscardAtomicLabel);
-
-        wDiscardAtomicCheckbox = new Button(settingsGroup, SWT.CHECK);
-        props.setLook(wDiscardAtomicCheckbox);
-        wDiscardAtomicCheckbox.setBackground(display.getSystemColor(SWT.COLOR_TRANSPARENT));
-        final FormData fdDiscardAtomicCheckbox = new FormDataBuilder().left(wDiscardAtomicLabel, LABEL_SPACING)
-                .top(wActionIfNoAtomicLabel, ELEMENT_SPACING)
-                .result();
-        wDiscardAtomicCheckbox.setLayoutData(fdDiscardAtomicCheckbox);
+        wAwaitTableView.setLayoutData(fdAwaitTableView);
 
         // Group for wait loop
         final Group waitLoopGroup = new Group(settingsGroup, SWT.SHADOW_ETCHED_IN);
@@ -437,7 +431,7 @@ public class AwaitStepDialog extends BaseStepDialog implements StepDialogInterfa
         waitLoopGroupLayout.marginHeight = MARGIN_SIZE;
         waitLoopGroup.setLayout(waitLoopGroupLayout);
         final FormData waitLoopGroupLayoutData = new FormDataBuilder().fullWidth()
-                .top(wAtomicValueLabel, MARGIN_SIZE)
+                .top(wAwaitTableView, MARGIN_SIZE)
                 .result();
         waitLoopGroup.setLayoutData(waitLoopGroupLayoutData);
 
@@ -446,7 +440,7 @@ public class AwaitStepDialog extends BaseStepDialog implements StepDialogInterfa
         props.setLook(wWaitLoopCheckPeriodLabel);
         wWaitLoopCheckPeriodLabel.setText(BaseMessages.getString(PKG, "AwaitStepDialog.TextFieldCheckPeriod"));
         final FormData fdWaitLoopCheckPeriodLabel = new FormDataBuilder().left()
-                .top(wAtomicValueLabel, ELEMENT_SPACING)
+                .top(wAwaitTableView, ELEMENT_SPACING)
                 .result();
         wWaitLoopCheckPeriodLabel.setLayoutData(fdWaitLoopCheckPeriodLabel);
 
@@ -455,7 +449,7 @@ public class AwaitStepDialog extends BaseStepDialog implements StepDialogInterfa
         wWaitLoopCheckPeriodField.addModifyListener(lsFieldsModify);
         wWaitLoopCheckPeriodField.addVerifyListener(new NumberVerifyListener(Long::parseLong));
         final FormData fdWaitLoopCheckPeriodField = new FormDataBuilder().left(wWaitLoopCheckPeriodLabel, LABEL_SPACING)
-                .top(wAtomicValueLabel, ELEMENT_SPACING)
+                .top(wAwaitTableView, ELEMENT_SPACING)
                 .width(SMALL_FIELD)
                 .result();
         wWaitLoopCheckPeriodField.setLayoutData(fdWaitLoopCheckPeriodField);
@@ -649,23 +643,18 @@ public class AwaitStepDialog extends BaseStepDialog implements StepDialogInterfa
         wWaitAtomicTimeoutLabel.setVisible(actionIfNoAtomic == ActionIfNoAtomic.Wait);
         wWaitAtomicTimeoutField.setVisible(actionIfNoAtomic == ActionIfNoAtomic.Wait);
 
-        wAtomicValueBooleanField.setVisible(atomicType == AtomicType.Boolean);
-        wAtomicValueIntegerField.setVisible(atomicType == AtomicType.Integer);
+        // use CCOMBO for true/false
+        ciAtomicValue.setFieldTypeColumn(atomicType == AtomicType.Boolean ? ColumnInfo.COLUMN_TYPE_CCOMBO : ColumnInfo.COLUMN_TYPE_TEXT);
 
-        final String atomicValue = meta.getAtomicValue();
-        switch (atomicType) {
-            case Boolean:
-                wAtomicValueBooleanField.setText(atomicValue == null ? "false" : atomicValue);
-                wAtomicValueIntegerField.setText("0");
-                break;
-            case Integer:
-                wAtomicValueIntegerField.setText(atomicValue == null ? "0" : atomicValue);
-                wAtomicValueBooleanField.setText("false");
-                break;
+        final List<AwaitTarget> awaitValues = meta.getAwaitValues();
+        if (awaitValues != null) {
+            wAwaitTableView.getTable().removeAll();
+            for (final AwaitTarget awaitValue : awaitValues) {
+                // TODO(AR) fix atomic types?
+                final String targetStepname = awaitValue.getTargetStep() != null ? awaitValue.getTargetStep().getName() : awaitValue.getTargetStepname();
+                wAwaitTableView.add(new String[]  { strNullIfNull(nullIfEmpty(awaitValue.getAtomicValue())), Boolean.toString(awaitValue.isDiscardAtomic()),  emptyIfNull(targetStepname)});
+            }
         }
-        wAtomicValueTargetField.setText(meta.getAtomicValueTargetStep() == null ? "" : meta.getAtomicValueTargetStep().getName());
-
-        wDiscardAtomicCheckbox.setSelection(meta.isDiscardAtomic());
 
         wWaitLoopCheckPeriodField.setText(Long.toString(meta.getWaitLoopCheckPeriod()));
         wWaitLoopTimeoutField.setText(Long.toString(meta.getWaitLoopTimeout()));
@@ -689,24 +678,33 @@ public class AwaitStepDialog extends BaseStepDialog implements StepDialogInterfa
             //TODO(AR) show an error to the user
             throw e;
         }
-        String atomicValue;
-        try {
-            switch (atomicType) {
-                case Boolean:
-                    atomicValue = wAtomicValueBooleanField.getText();
-                    break;
-                case Integer:
-                    atomicValue = wAtomicValueIntegerField.getText();
-                    break;
-                default:
-                    //TODO(AR) show an error to the user
-                    throw new IllegalStateException("No such Atomic Type");
-            }
 
-            atomicValue = atomicType.checkValidValue(atomicValue);
-        } catch (final IllegalArgumentException e) {
-            //TODO(AR) show an error to the user
-            throw e;
+        final int awaitValuesLen = wAwaitTableView.getItemCount();
+        final List<AwaitTarget> awaitValues = new ArrayList<>(awaitValuesLen);
+        for (int i = 0; i < awaitValuesLen; i++) {
+            String atomicValue = wAwaitTableView.getItem(i, 1);
+            final String discardAtomic = wAwaitTableView.getItem(i, 2);
+            if (atomicValue != null && discardAtomic != null) {
+                try {
+                    final StepMeta targetStep;
+                    final String targetStepName = wAwaitTableView.getItem(i, 3);
+                    if (!isNullOrEmpty(targetStepName)) {
+                        targetStep = transMeta.findStep(targetStepName);
+                    } else {
+                        targetStep = null;
+                    }
+
+                    atomicValue = nullIfStrNull(nullIfEmpty(atomicValue));
+                    if (atomicValue != null) {
+                        atomicValue = atomicType.checkValidValue(atomicValue);
+                    }
+
+                    awaitValues.add(new AwaitTarget(atomicValue, Boolean.valueOf(discardAtomic), targetStep));
+                } catch (final IllegalArgumentException e) {
+                    //TODO(AR) show an error to the user
+                    throw e;
+                }
+            }
         }
 
         meta.setAtomicIdFieldName(wAtomicIdField.getText());
@@ -737,16 +735,7 @@ public class AwaitStepDialog extends BaseStepDialog implements StepDialogInterfa
                 throw e;
             }
         }
-        meta.setAtomicValue(atomicValue);
-        final String atomicValueTargetName = this.wAtomicValueTargetField.getText();
-        if (!isNullOrEmpty(atomicValueTargetName)) {
-            final StepMeta atomicValueTargetStep = transMeta.findStep(atomicValueTargetName);
-            meta.setAtomicValueTargetStep(atomicValueTargetStep);
-        } else {
-            meta.setAtomicValueTargetStep(null);
-        }
-
-        meta.setDiscardAtomic(wDiscardAtomicCheckbox.getSelection());
+        meta.setAwaitValues(awaitValues);
 
         try {
             final long checkPeriod = Long.parseLong(wWaitLoopCheckPeriodField.getText());
