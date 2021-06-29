@@ -157,8 +157,6 @@ public class AwaitStep extends BaseStep implements StepInterface {
         long waited = 0;
         while (true) {
 
-            // refresh the atomic object
-            atomicValue = data.getAtomic(atomicId, atomicType);
 
             if (AtomicType.Boolean == atomicType) {
                 final AtomicBooleanValue atomicBoolean = (AtomicBooleanValue) atomicValue;
@@ -208,6 +206,10 @@ public class AwaitStep extends BaseStep implements StepInterface {
                 logLineNumber();
                 return true; // row done!
             }
+
+            // refresh the atomic object
+            atomicValue = data.getAtomic(atomicId, atomicType);
+
         }  // end while
 
         // send to specific target for Await success
