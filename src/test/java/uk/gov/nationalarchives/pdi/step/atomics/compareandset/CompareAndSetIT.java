@@ -22,7 +22,6 @@
  */
 package uk.gov.nationalarchives.pdi.step.atomics.compareandset;
 
-import com.evolvedbinary.j8fu.tuple.Tuple2;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -44,11 +43,8 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Stream;
 
-import static com.evolvedbinary.j8fu.tuple.Tuple.Tuple;
 import static org.junit.jupiter.api.Assertions.*;
 
 public class CompareAndSetIT {
@@ -93,17 +89,17 @@ public class CompareAndSetIT {
                 generateInputData(atomicIdFieldName, atomicIdFieldValue));
         assertEquals(1, result.size());
 
-        final Map<String, Tuple2<AtomicType, Object>> stored = AtomicStorageTestHelper.copy();
+        final Map<String, AtomicValue> stored = AtomicStorageTestHelper.copy();
         assertEquals(1, stored.size());
-        final Tuple2<AtomicType, Object> atomicValue = stored.get(atomicIdFieldValue);
+        final AtomicValue atomicValue = stored.get(atomicIdFieldValue);
         assertNotNull(atomicValue);
-        assertEquals(atomicType, atomicValue._1);
+        assertEquals(atomicType, atomicValue.getType());
         if (atomicType == AtomicType.Integer) {
-            assertTrue(atomicValue._2 instanceof AtomicInteger);
-            assertEquals(Integer.valueOf(initialiseValue), ((AtomicInteger) atomicValue._2).get());
+            assertTrue(atomicValue instanceof AtomicIntegerValue);
+            assertEquals(Integer.valueOf(initialiseValue), ((AtomicIntegerValue) atomicValue).get());
         } else {
-            assertTrue(atomicValue._2 instanceof AtomicBoolean);
-            assertEquals(Boolean.valueOf(initialiseValue), ((AtomicBoolean) atomicValue._2).get());
+            assertTrue(atomicValue instanceof AtomicBooleanValue);
+            assertEquals(Boolean.valueOf(initialiseValue), ((AtomicBooleanValue) atomicValue).get());
         }
     }
 
@@ -124,9 +120,9 @@ public class CompareAndSetIT {
 
         // prepare the storage
         if (atomicType == AtomicType.Integer) {
-            AtomicStorageTestHelper.set(atomicIdFieldValue, Tuple(atomicType, new AtomicInteger(Integer.parseInt(existingAtomicValue))));
+            AtomicStorageTestHelper.set(atomicIdFieldValue, new AtomicIntegerValue(Integer.parseInt(existingAtomicValue)));
         } else {
-            AtomicStorageTestHelper.set(atomicIdFieldValue, Tuple(atomicType, new AtomicBoolean(Boolean.parseBoolean(existingAtomicValue))));
+            AtomicStorageTestHelper.set(atomicIdFieldValue, new AtomicBooleanValue(Boolean.parseBoolean(existingAtomicValue)));
         }
 
         final CompareAndSetStepMeta compareAndSetStepMeta = new CompareAndSetStepMeta();
@@ -144,17 +140,17 @@ public class CompareAndSetIT {
                 generateInputData(atomicIdFieldName, atomicIdFieldValue));
         assertEquals(1, result.size());
 
-        final Map<String, Tuple2<AtomicType, Object>> stored = AtomicStorageTestHelper.copy();
+        final Map<String, AtomicValue> stored = AtomicStorageTestHelper.copy();
         assertEquals(1, stored.size());
-        final Tuple2<AtomicType, Object> atomicValue = stored.get(atomicIdFieldValue);
+        final AtomicValue atomicValue = stored.get(atomicIdFieldValue);
         assertNotNull(atomicValue);
-        assertEquals(atomicType, atomicValue._1);
+        assertEquals(atomicType, atomicValue.getType());
         if (atomicType == AtomicType.Integer) {
-            assertTrue(atomicValue._2 instanceof AtomicInteger);
-            assertEquals(Integer.valueOf(existingAtomicValue), ((AtomicInteger) atomicValue._2).get());
+            assertTrue(atomicValue instanceof AtomicIntegerValue);
+            assertEquals(Integer.valueOf(existingAtomicValue), ((AtomicIntegerValue) atomicValue).get());
         } else {
-            assertTrue(atomicValue._2 instanceof AtomicBoolean);
-            assertEquals(Boolean.valueOf(existingAtomicValue), ((AtomicBoolean) atomicValue._2).get());
+            assertTrue(atomicValue instanceof AtomicBooleanValue);
+            assertEquals(Boolean.valueOf(existingAtomicValue), ((AtomicBooleanValue) atomicValue).get());
         }
     }
 
@@ -219,7 +215,7 @@ public class CompareAndSetIT {
                 generateInputData(atomicIdFieldName, atomicIdFieldValue));
         assertEquals(1, result.size());
 
-        final Map<String, Tuple2<AtomicType, Object>> stored = AtomicStorageTestHelper.copy();
+        final Map<String, AtomicValue> stored = AtomicStorageTestHelper.copy();
         assertTrue(stored.isEmpty());
     }
 
@@ -245,11 +241,11 @@ public class CompareAndSetIT {
         compareAndSetStepMeta.setWaitAtomicTimeout(5000);  // a suitably long time to enable us to set it
         compareAndSetStepMeta.setWaitAtomicCheckPeriod(50);
 
-        final Object atomicObj;
+        final AtomicValue atomicValue;
         if (atomicType == AtomicType.Integer) {
-            atomicObj = new AtomicInteger(Integer.parseInt(waitForValue));
+            atomicValue = new AtomicIntegerValue(Integer.parseInt(waitForValue));
         } else {
-            atomicObj = new AtomicBoolean(Boolean.parseBoolean(waitForValue));
+            atomicValue = new AtomicBooleanValue(Boolean.parseBoolean(waitForValue));
         }
 
         final Thread setAtomicThread = new Thread(() -> {
@@ -258,7 +254,7 @@ public class CompareAndSetIT {
             } catch (final InterruptedException e) {
                 Thread.currentThread().interrupt();  // restore interrupted flag
             }
-            AtomicStorageTestHelper.set(atomicIdFieldValue, new Tuple2<>(atomicType, atomicObj));
+            AtomicStorageTestHelper.set(atomicIdFieldValue, atomicValue);
         });
 
         final TransMeta transMeta = TransTestFactory.generateTestTransformation(new Variables(), compareAndSetStepMeta, stepName);
@@ -273,17 +269,17 @@ public class CompareAndSetIT {
                     generateInputData(atomicIdFieldName, atomicIdFieldValue));
             assertEquals(1, result.size());
 
-            final Map<String, Tuple2<AtomicType, Object>> stored = AtomicStorageTestHelper.copy();
+            final Map<String, AtomicValue> stored = AtomicStorageTestHelper.copy();
             assertEquals(1, stored.size());
-            final Tuple2<AtomicType, Object> atomicValue = stored.get(atomicIdFieldValue);
-            assertNotNull(atomicValue);
-            assertEquals(atomicType, atomicValue._1);
+            final AtomicValue atomicValueResult = stored.get(atomicIdFieldValue);
+            assertNotNull(atomicValueResult);
+            assertEquals(atomicType, atomicValue.getType());
             if (atomicType == AtomicType.Integer) {
-                assertTrue(atomicValue._2 instanceof AtomicInteger);
-                assertEquals(Integer.valueOf(waitForValue), ((AtomicInteger) atomicValue._2).get());
+                assertTrue(atomicValueResult instanceof AtomicIntegerValue);
+                assertEquals(Integer.valueOf(waitForValue), ((AtomicIntegerValue) atomicValueResult).get());
             } else {
-                assertTrue(atomicValue._2 instanceof AtomicBoolean);
-                assertEquals(Boolean.valueOf(waitForValue), ((AtomicBoolean) atomicValue._2).get());
+                assertTrue(atomicValueResult instanceof AtomicBooleanValue);
+                assertEquals(Boolean.valueOf(waitForValue), ((AtomicBooleanValue) atomicValueResult).get());
             }
 
         } finally {
@@ -381,17 +377,17 @@ public class CompareAndSetIT {
                 generateInputData(atomicIdFieldName, atomicIdFieldValue));
         assertEquals(1, result.size());
 
-        final Map<String, Tuple2<AtomicType, Object>> stored = AtomicStorageTestHelper.copy();
+        final Map<String, AtomicValue> stored = AtomicStorageTestHelper.copy();
         assertEquals(1, stored.size());
-        final Tuple2<AtomicType, Object> atomicValue = stored.get(atomicIdFieldValue);
+        final AtomicValue atomicValue = stored.get(atomicIdFieldValue);
         assertNotNull(atomicValue);
-        assertEquals(atomicType, atomicValue._1);
+        assertEquals(atomicType, atomicValue.getType());
         if (atomicType == AtomicType.Integer) {
-            assertTrue(atomicValue._2 instanceof AtomicInteger);
-            assertEquals(Integer.valueOf(expectedValue), ((AtomicInteger) atomicValue._2).get());
+            assertTrue(atomicValue instanceof AtomicIntegerValue);
+            assertEquals(Integer.valueOf(expectedValue), ((AtomicIntegerValue) atomicValue).get());
         } else {
-            assertTrue(atomicValue._2 instanceof AtomicBoolean);
-            assertEquals(Boolean.valueOf(expectedValue), ((AtomicBoolean) atomicValue._2).get());
+            assertTrue(atomicValue instanceof AtomicBooleanValue);
+            assertEquals(Boolean.valueOf(expectedValue), ((AtomicBooleanValue) atomicValue).get());
         }
     }
 
@@ -428,13 +424,13 @@ public class CompareAndSetIT {
         final String atomicIdFieldValue = "atomicId1";
 
         // prepare the storage
-        final Object atomicObj;
+        final AtomicValue atomicValue;
         if (atomicType == AtomicType.Integer) {
-            atomicObj = new AtomicInteger(Integer.parseInt(existingAtomicValue));
+            atomicValue = new AtomicIntegerValue(Integer.parseInt(existingAtomicValue));
         } else {
-            atomicObj = new AtomicBoolean(Boolean.parseBoolean(existingAtomicValue));
+            atomicValue = new AtomicBooleanValue(Boolean.parseBoolean(existingAtomicValue));
         }
-        AtomicStorageTestHelper.set(atomicIdFieldValue, Tuple(atomicType, atomicObj));
+        AtomicStorageTestHelper.set(atomicIdFieldValue, atomicValue);
 
         final CompareAndSetStepMeta compareAndSetStepMeta = new CompareAndSetStepMeta();
         compareAndSetStepMeta.setAtomicIdFieldName(atomicIdFieldName);
@@ -452,17 +448,17 @@ public class CompareAndSetIT {
                 generateInputData(atomicIdFieldName, atomicIdFieldValue));
         assertEquals(1, result.size());
 
-        final Map<String, Tuple2<AtomicType, Object>> stored = AtomicStorageTestHelper.copy();
+        final Map<String, AtomicValue> stored = AtomicStorageTestHelper.copy();
         assertEquals(1, stored.size());
-        final Tuple2<AtomicType, Object> atomicValue = stored.get(atomicIdFieldValue);
-        assertNotNull(atomicValue);
-        assertEquals(atomicType, atomicValue._1);
+        final AtomicValue atomicValueResult = stored.get(atomicIdFieldValue);
+        assertNotNull(atomicValueResult);
+        assertEquals(atomicType, atomicValueResult.getType());
         if (atomicType == AtomicType.Integer) {
-            assertTrue(atomicValue._2 instanceof AtomicInteger);
-            assertEquals(Integer.valueOf(expectedValue), ((AtomicInteger) atomicValue._2).get());
+            assertTrue(atomicValueResult instanceof AtomicIntegerValue);
+            assertEquals(Integer.valueOf(expectedValue), ((AtomicIntegerValue) atomicValueResult).get());
         } else {
-            assertTrue(atomicValue._2 instanceof AtomicBoolean);
-            assertEquals(Boolean.valueOf(expectedValue), ((AtomicBoolean) atomicValue._2).get());
+            assertTrue(atomicValueResult instanceof AtomicBooleanValue);
+            assertEquals(Boolean.valueOf(expectedValue), ((AtomicBooleanValue) atomicValueResult).get());
         }
     }
 
@@ -486,13 +482,13 @@ public class CompareAndSetIT {
         final String atomicIdFieldValue = "atomicId1";
 
         // prepare the storage
-        final Object atomicObj;
+        final AtomicValue atomicValue;
         if (atomicType ==  AtomicType.Integer) {
-            atomicObj = new AtomicInteger(Integer.parseInt(existingAtomicValue));
+            atomicValue = new AtomicIntegerValue(Integer.parseInt(existingAtomicValue));
         } else {
-            atomicObj = new AtomicBoolean(Boolean.parseBoolean(existingAtomicValue));
+            atomicValue = new AtomicBooleanValue(Boolean.parseBoolean(existingAtomicValue));
         }
-        AtomicStorageTestHelper.set(atomicIdFieldValue, Tuple(atomicType, atomicObj));
+        AtomicStorageTestHelper.set(atomicIdFieldValue, atomicValue);
 
         final CompareAndSetStepMeta compareAndSetStepMeta = new CompareAndSetStepMeta();
         compareAndSetStepMeta.setAtomicIdFieldName(atomicIdFieldName);
@@ -512,17 +508,17 @@ public class CompareAndSetIT {
                 generateInputData(atomicIdFieldName, atomicIdFieldValue));
         assertEquals(1, result.size());
 
-        final Map<String, Tuple2<AtomicType, Object>> stored = AtomicStorageTestHelper.copy();
+        final Map<String, AtomicValue> stored = AtomicStorageTestHelper.copy();
         assertEquals(1, stored.size());
-        final Tuple2<AtomicType, Object> atomicValue = stored.get(atomicIdFieldValue);
-        assertNotNull(atomicValue);
-        assertEquals(atomicType, atomicValue._1);
+        final AtomicValue atomicValueResult = stored.get(atomicIdFieldValue);
+        assertNotNull(atomicValueResult);
+        assertEquals(atomicType, atomicValueResult.getType());
         if (atomicType == AtomicType.Integer) {
-            assertTrue(atomicValue._2 instanceof AtomicInteger);
-            assertEquals(Integer.valueOf(existingAtomicValue), ((AtomicInteger) atomicValue._2).get());
+            assertTrue(atomicValueResult instanceof AtomicIntegerValue);
+            assertEquals(Integer.valueOf(existingAtomicValue), ((AtomicIntegerValue) atomicValueResult).get());
         } else {
-            assertTrue(atomicValue._2 instanceof AtomicBoolean);
-            assertEquals(Boolean.valueOf(existingAtomicValue), ((AtomicBoolean) atomicValue._2).get());
+            assertTrue(atomicValueResult instanceof AtomicBooleanValue);
+            assertEquals(Boolean.valueOf(existingAtomicValue), ((AtomicBooleanValue) atomicValueResult).get());
         }
     }
 
@@ -546,13 +542,13 @@ public class CompareAndSetIT {
         final String atomicIdFieldValue = "atomicId1";
 
         // prepare the storage
-        final Object atomicObj;
+        final AtomicValue atomicValue;
         if (atomicType ==  AtomicType.Integer) {
-            atomicObj = new AtomicInteger(Integer.parseInt(existingAtomicValue));
+            atomicValue = new AtomicIntegerValue(Integer.parseInt(existingAtomicValue));
         } else {
-            atomicObj = new AtomicBoolean(Boolean.parseBoolean(existingAtomicValue));
+            atomicValue = new AtomicBooleanValue(Boolean.parseBoolean(existingAtomicValue));
         }
-        AtomicStorageTestHelper.set(atomicIdFieldValue, Tuple(atomicType, atomicObj));
+        AtomicStorageTestHelper.set(atomicIdFieldValue, atomicValue);
 
         final CompareAndSetStepMeta compareAndSetStepMeta = new CompareAndSetStepMeta();
         compareAndSetStepMeta.setAtomicIdFieldName(atomicIdFieldName);
@@ -609,13 +605,13 @@ public class CompareAndSetIT {
         final String atomicIdFieldValue = "atomicId1";
 
         // prepare the storage
-        final Object atomicObj;
+        final AtomicValue atomicValue;
         if (atomicType ==  AtomicType.Integer) {
-            atomicObj = new AtomicInteger(Integer.parseInt(existingAtomicValue));
+            atomicValue = new AtomicIntegerValue(Integer.parseInt(existingAtomicValue));
         } else {
-            atomicObj = new AtomicBoolean(Boolean.parseBoolean(existingAtomicValue));
+            atomicValue = new AtomicBooleanValue(Boolean.parseBoolean(existingAtomicValue));
         }
-        AtomicStorageTestHelper.set(atomicIdFieldValue, Tuple(atomicType, atomicObj));
+        AtomicStorageTestHelper.set(atomicIdFieldValue, atomicValue);
 
         final CompareAndSetStepMeta compareAndSetStepMeta = new CompareAndSetStepMeta();
         compareAndSetStepMeta.setAtomicIdFieldName(atomicIdFieldName);
@@ -627,11 +623,11 @@ public class CompareAndSetIT {
 
         compareAndSetStepMeta.setCompareAndSetValues(compareAndSetValues);
 
-        final Object atomicObj2;
+        final AtomicValue atomicValue2;
         if (atomicType == AtomicType.Integer) {
-            atomicObj2 = new AtomicInteger(Integer.parseInt(updatedAtomicValue));
+            atomicValue2 = new AtomicIntegerValue(Integer.parseInt(updatedAtomicValue));
         } else {
-            atomicObj2 = new AtomicBoolean(Boolean.parseBoolean(updatedAtomicValue));
+            atomicValue2 = new AtomicBooleanValue(Boolean.parseBoolean(updatedAtomicValue));
         }
         final Thread setAtomicThread = new Thread(() -> {
             try {
@@ -639,7 +635,7 @@ public class CompareAndSetIT {
             } catch (final InterruptedException e) {
                 Thread.currentThread().interrupt();  // restore interrupted flag
             }
-            AtomicStorageTestHelper.put(atomicIdFieldValue, new Tuple2<>(atomicType, atomicObj2));
+            AtomicStorageTestHelper.put(atomicIdFieldValue, atomicValue2);
         });
 
         final TransMeta transMeta = TransTestFactory.generateTestTransformation(new Variables(), compareAndSetStepMeta, stepName);
@@ -654,17 +650,17 @@ public class CompareAndSetIT {
                     generateInputData(atomicIdFieldName, atomicIdFieldValue));
             assertEquals(1, result.size());
 
-            final Map<String, Tuple2<AtomicType, Object>> stored = AtomicStorageTestHelper.copy();
+            final Map<String, AtomicValue> stored = AtomicStorageTestHelper.copy();
             assertEquals(1, stored.size());
-            final Tuple2<AtomicType, Object> atomicValue = stored.get(atomicIdFieldValue);
-            assertNotNull(atomicValue);
-            assertEquals(atomicType, atomicValue._1);
+            final AtomicValue atomicValueResult = stored.get(atomicIdFieldValue);
+            assertNotNull(atomicValueResult);
+            assertEquals(atomicType, atomicValueResult.getType());
             if (atomicType == AtomicType.Integer) {
-                assertTrue(atomicValue._2 instanceof AtomicInteger);
-                assertEquals(Integer.valueOf(expectedValue), ((AtomicInteger) atomicValue._2).get());
+                assertTrue(atomicValueResult instanceof AtomicIntegerValue);
+                assertEquals(Integer.valueOf(expectedValue), ((AtomicIntegerValue) atomicValueResult).get());
             } else {
-                assertTrue(atomicValue._2 instanceof AtomicBoolean);
-                assertEquals(Boolean.valueOf(expectedValue), ((AtomicBoolean) atomicValue._2).get());
+                assertTrue(atomicValueResult instanceof AtomicBooleanValue);
+                assertEquals(Boolean.valueOf(expectedValue), ((AtomicBooleanValue) atomicValueResult).get());
             }
         } finally {
             setAtomicThread.join();
@@ -691,13 +687,13 @@ public class CompareAndSetIT {
         final String atomicIdFieldValue = "atomicId1";
 
         // prepare the storage
-        final Object atomicObj;
+        final AtomicValue atomicValue;
         if (atomicType ==  AtomicType.Integer) {
-            atomicObj = new AtomicInteger(Integer.parseInt(existingAtomicValue));
+            atomicValue = new AtomicIntegerValue(Integer.parseInt(existingAtomicValue));
         } else {
-            atomicObj = new AtomicBoolean(Boolean.parseBoolean(existingAtomicValue));
+            atomicValue = new AtomicBooleanValue(Boolean.parseBoolean(existingAtomicValue));
         }
-        AtomicStorageTestHelper.set(atomicIdFieldValue, Tuple(atomicType, atomicObj));
+        AtomicStorageTestHelper.set(atomicIdFieldValue, atomicValue);
 
         final CompareAndSetStepMeta compareAndSetStepMeta = new CompareAndSetStepMeta();
         compareAndSetStepMeta.setAtomicIdFieldName(atomicIdFieldName);
@@ -719,17 +715,17 @@ public class CompareAndSetIT {
                 generateInputData(atomicIdFieldName, atomicIdFieldValue));
         assertEquals(1, result.size());
 
-        final Map<String, Tuple2<AtomicType, Object>> stored = AtomicStorageTestHelper.copy();
+        final Map<String, AtomicValue> stored = AtomicStorageTestHelper.copy();
         assertEquals(1, stored.size());
-        final Tuple2<AtomicType, Object> atomicValue = stored.get(atomicIdFieldValue);
-        assertNotNull(atomicValue);
-        assertEquals(atomicType, atomicValue._1);
+        final AtomicValue atomicValueResult = stored.get(atomicIdFieldValue);
+        assertNotNull(atomicValueResult);
+        assertEquals(atomicType, atomicValueResult.getType());
         if (atomicType == AtomicType.Integer) {
-            assertTrue(atomicValue._2 instanceof AtomicInteger);
-            assertEquals(Integer.valueOf(existingAtomicValue), ((AtomicInteger) atomicValue._2).get());
+            assertTrue(atomicValueResult instanceof AtomicIntegerValue);
+            assertEquals(Integer.valueOf(existingAtomicValue), ((AtomicIntegerValue) atomicValueResult).get());
         } else {
-            assertTrue(atomicValue._2 instanceof AtomicBoolean);
-            assertEquals(Boolean.valueOf(existingAtomicValue), ((AtomicBoolean) atomicValue._2).get());
+            assertTrue(atomicValueResult instanceof AtomicBooleanValue);
+            assertEquals(Boolean.valueOf(existingAtomicValue), ((AtomicBooleanValue) atomicValueResult).get());
         }
     }
 

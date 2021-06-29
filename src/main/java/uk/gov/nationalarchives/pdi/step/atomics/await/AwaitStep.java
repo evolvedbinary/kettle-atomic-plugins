@@ -30,12 +30,7 @@ import org.pentaho.di.i18n.BaseMessages;
 import org.pentaho.di.trans.Trans;
 import org.pentaho.di.trans.TransMeta;
 import org.pentaho.di.trans.step.*;
-import uk.gov.nationalarchives.pdi.step.atomics.ActionIfNoAtomic;
-import uk.gov.nationalarchives.pdi.step.atomics.AtomicType;
-import uk.gov.nationalarchives.pdi.step.atomics.ErrorCodes;
-
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
+import uk.gov.nationalarchives.pdi.step.atomics.*;
 
 import static uk.gov.nationalarchives.pdi.step.atomics.Util.isNotEmpty;
 
@@ -87,15 +82,15 @@ public class AwaitStep extends BaseStep implements StepInterface {
 
 
         long waitedForAtomic = 0;
-        Object atomicObj = null;
+        AtomicValue atomicValue = null;
         while (true) {
             if (ActionIfNoAtomic.Initialise == actionIfNoAtomic) {
-                atomicObj = data.getOrCreateAtomic(atomicId, atomicType, meta.getInitialiseAtomicValue());
+                atomicValue = data.getOrCreateAtomic(atomicId, atomicType, meta.getInitialiseAtomicValue());
             } else {
-                atomicObj = data.getAtomic(atomicId, atomicType);
+                atomicValue = data.getAtomic(atomicId, atomicType);
             }
 
-            if (atomicObj != null) {
+            if (atomicValue != null) {
                 break;  // exit while loop
             }
 
@@ -163,16 +158,16 @@ public class AwaitStep extends BaseStep implements StepInterface {
         while (true) {
 
             // refresh the atomic object
-            atomicObj = data.getAtomic(atomicId, atomicType);
+            atomicValue = data.getAtomic(atomicId, atomicType);
 
             if (AtomicType.Boolean == atomicType) {
-                final AtomicBoolean atomicBoolean = (AtomicBoolean) atomicObj;
+                final AtomicBooleanValue atomicBoolean = (AtomicBooleanValue) atomicValue;
                 final boolean awaitValueBoolean = Boolean.valueOf(meta.getAtomicValue());
                 atomicIsEqual = awaitValueBoolean == atomicBoolean.get();
 
             } else if (AtomicType.Integer == atomicType) {
                 final int awaitValueInt = Integer.valueOf(meta.getAtomicValue());
-                final AtomicInteger atomicInteger = (AtomicInteger) atomicObj;
+                final AtomicIntegerValue atomicInteger = (AtomicIntegerValue) atomicValue;
                 atomicIsEqual = awaitValueInt == atomicInteger.get();
 
             } else {

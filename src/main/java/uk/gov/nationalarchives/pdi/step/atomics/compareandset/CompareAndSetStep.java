@@ -31,15 +31,10 @@ import org.pentaho.di.trans.Trans;
 import org.pentaho.di.trans.TransMeta;
 import org.pentaho.di.trans.step.*;
 import org.pentaho.di.trans.step.errorhandling.StreamInterface;
-import uk.gov.nationalarchives.pdi.step.atomics.ActionIfNoAtomic;
-import uk.gov.nationalarchives.pdi.step.atomics.ActionIfUnableToSet;
-import uk.gov.nationalarchives.pdi.step.atomics.AtomicType;
-import uk.gov.nationalarchives.pdi.step.atomics.ErrorCodes;
+import uk.gov.nationalarchives.pdi.step.atomics.*;
 
 import java.util.List;
 import java.util.Set;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import static uk.gov.nationalarchives.pdi.step.atomics.Util.isNotEmpty;
 import static uk.gov.nationalarchives.pdi.step.atomics.Util.isNullOrEmpty;
@@ -89,15 +84,15 @@ public class CompareAndSetStep extends BaseStep implements StepInterface {
         final long waitAtomicTimeout = meta.getWaitAtomicTimeout();
 
         long waitedForAtomic = 0;
-        Object atomicObj = null;
+        AtomicValue atomicValue = null;
         while (true) {
             if (ActionIfNoAtomic.Initialise == actionIfNoAtomic) {
-                atomicObj = data.getOrCreateAtomic(atomicId, atomicType, meta.getInitialiseAtomicValue());
+                atomicValue = data.getOrCreateAtomic(atomicId, atomicType, meta.getInitialiseAtomicValue());
             } else {
-                atomicObj = data.getAtomic(atomicId, atomicType);
+                atomicValue = data.getAtomic(atomicId, atomicType);
             }
 
-            if (atomicObj != null) {
+            if (atomicValue != null) {
                 break;  // exit while loop
             }
 
@@ -170,7 +165,7 @@ public class CompareAndSetStep extends BaseStep implements StepInterface {
             while (true) {
 
                 // refresh the atomic object
-                atomicObj = data.getAtomic(atomicId, atomicType);
+                atomicValue = data.getAtomic(atomicId, atomicType);
 
                 set = false;
 
@@ -178,13 +173,13 @@ public class CompareAndSetStep extends BaseStep implements StepInterface {
                 for (final CompareAndSetTarget compareAndSetValue : compareAndSetValues) {
 
                     if (AtomicType.Boolean == atomicType) {
-                        final AtomicBoolean atomicBoolean = (AtomicBoolean) atomicObj;
+                        final AtomicBooleanValue atomicBoolean = (AtomicBooleanValue) atomicValue;
                         final boolean compareValue = Boolean.valueOf(compareAndSetValue.getCompareValue());
                         final boolean setValue = Boolean.valueOf(compareAndSetValue.getSetValue());
                         set = atomicBoolean.compareAndSet(compareValue, setValue);
 
                     } else if (AtomicType.Integer == atomicType) {
-                        final AtomicInteger atomicInteger = (AtomicInteger) atomicObj;
+                        final AtomicIntegerValue atomicInteger = (AtomicIntegerValue) atomicValue;
                         final int compareValue = Integer.valueOf(compareAndSetValue.getCompareValue());
                         final int setValue = Integer.valueOf(compareAndSetValue.getSetValue());
                         set = atomicInteger.compareAndSet(compareValue, setValue);

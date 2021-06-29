@@ -22,28 +22,48 @@
  */
 package uk.gov.nationalarchives.pdi.step.atomics;
 
-import java.util.Collections;
-import java.util.Map;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
- * Simple interface to make some {@link AtomicStorage} test methods
- * accessible.
+ * Simple wrapper around {@link AtomicBoolean} to
+ * allow us to have a common super-type with
+ * {@link AtomicBooleanValue}.
  */
-public interface AtomicStorageTestHelper {
+public class AtomicBooleanValue implements AtomicValue {
 
-    static void clear() {
-        AtomicStorage.INSTANCE.clear();
+    private final AtomicBoolean atomic;
+
+    /**
+     * Creates a new {@link AtomicBoolean} with the given initial value.
+     *
+     * @param initialValue the initial value
+     */
+    public AtomicBooleanValue(final boolean initialValue) {
+        this.atomic = new AtomicBoolean(initialValue);
     }
 
-    static Map<String, AtomicValue> copy() {
-        return AtomicStorage.INSTANCE.copy();
+    @Override
+    public AtomicType getType() {
+        return AtomicType.Boolean;
     }
 
-    static void set(final String id, final AtomicValue atomicValue) {
-        AtomicStorage.INSTANCE.set(Collections.singletonMap(id, atomicValue));
+    /**
+     * See {@link AtomicBoolean#get()}.
+     *
+     * @return the current value
+     */
+    public boolean get() {
+        return atomic.get();
     }
 
-    static void put(final String id, final AtomicValue atomicValue) {
-        AtomicStorage.INSTANCE.put(id, atomicValue);
+    /**
+     * See {@link AtomicBoolean#compareAndSet(boolean, boolean)}.
+     *
+     * @param expect the expected value
+     * @param update the new value
+     * @return {@code true} if successful.
+     */
+    public boolean compareAndSet(final boolean expect, final boolean update) {
+        return atomic.compareAndSet(expect, update);
     }
 }
