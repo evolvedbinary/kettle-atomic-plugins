@@ -97,7 +97,7 @@ public class CompareAndSetStep extends BaseStep implements StepInterface {
             }
 
 
-            // when atomicObj null...
+            // when atomicValue null...
 
             if (ActionIfNoAtomic.Continue == actionIfNoAtomic) {
                 // send row to the 'Continue' output of the step
@@ -151,7 +151,7 @@ public class CompareAndSetStep extends BaseStep implements StepInterface {
             }
         }  // end while
 
-        // At this point we have an atomicObj
+        // At this point we have an atomicValue
         final ActionIfUnableToSet actionIfUnableToSet = meta.getActionIfUnableToSet();
         CompareAndSetTarget casTarget = null;
 
@@ -266,7 +266,7 @@ public class CompareAndSetStep extends BaseStep implements StepInterface {
                 } else {
                     throw new IllegalArgumentException("CAS Unknown ActionIfUnableToSet: " + actionIfUnableToSet.name());
                 }
-            }
+            }  // end while
         }
 
         if (casTarget != null) {

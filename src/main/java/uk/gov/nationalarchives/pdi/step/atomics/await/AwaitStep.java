@@ -95,7 +95,7 @@ public class AwaitStep extends BaseStep implements StepInterface {
             }
 
 
-            // when atomicObj null...
+            // when atomicValue null...
 
             if (ActionIfNoAtomic.Continue == actionIfNoAtomic) {
                 // send row to the 'Continue' output of the step
@@ -148,7 +148,7 @@ public class AwaitStep extends BaseStep implements StepInterface {
             }
         }  // end while
 
-        // At this point we have an atomicObj
+        // At this point we have an atomicValue
         boolean atomicIsEqual = false;
 
         final long waitLoopCheckPeriod = meta.getWaitLoopCheckPeriod();
