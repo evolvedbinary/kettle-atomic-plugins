@@ -25,6 +25,7 @@ package uk.gov.nationalarchives.pdi.step.atomics.await;
 import org.pentaho.di.trans.step.StepMeta;
 
 import javax.annotation.Nullable;
+import java.util.List;
 
 public class AwaitTarget implements Cloneable {
 
@@ -87,5 +88,23 @@ public class AwaitTarget implements Cloneable {
     @Override
     public String toString() {
         return "[==" + (atomicValue != null ? atomicValue : "null") + "] => " + (targetStep != null ? targetStep.getName() : targetStepname);
+    }
+
+    /**
+     * Searches the {@code awaitTargets} and returns the first AwaitTarget
+     * which has a null AtomicValue.
+     *
+     * @param awaitTargets the AwaitTargets to search
+     *
+     * @return the first AwaitTarget which has a null AtomicValue,
+     *         else if there is no such AwaitTarget then null is returned.
+     */
+    public static @Nullable AwaitTarget findAwaitTargetForNullValue(final List<AwaitTarget> awaitTargets) {
+        for (final AwaitTarget awaitTarget : awaitTargets) {
+            if (awaitTarget.getAtomicValue() == null) {
+                return awaitTarget;
+            }
+        }
+        return null;
     }
 }

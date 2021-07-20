@@ -45,9 +45,15 @@ import static uk.gov.nationalarchives.pdi.step.atomics.Util.*;
 
 public class AwaitStep extends BaseStep implements StepInterface {
 
-    private enum RouteTarget {
+    private enum GetAtomicRouteTarget {
         CONTINUE,
         ERROR,
+        TIMEOUT,
+        THREAD_INTERRUPTED
+    }
+
+    private enum AwaitAtomicRouteTarget {
+        DEFAULT,
         TIMEOUT,
         THREAD_INTERRUPTED
     }
@@ -64,7 +70,7 @@ public class AwaitStep extends BaseStep implements StepInterface {
     @Override
     public boolean processRow(final StepMetaInterface smi, final StepDataInterface sdi) throws KettleException {
 
-        Object[] row = getRow(); // try and get a row
+        final Object[] row = getRow(); // try and get a row
         if (row == null) {
             // no more rows...
             setOutputDone();
@@ -85,157 +91,75 @@ public class AwaitStep extends BaseStep implements StepInterface {
 
         final String atomicId = getAtomicId(data, row);
 
-        // get (or initialise) the AtomicValue
-        final Either<RouteTarget, AtomicValue> routeOrAtomic = getAtomic(meta, data, atomicId);
+        // 1. get (or initialise) the AtomicValue
+        final Either<GetAtomicRouteTarget, AtomicValue> routeOrAtomic = getAtomic(meta, data, atomicId);
         if (routeOrAtomic.isLeft()) {
             // could not get (or initialise) AtomicValue, so route row to specific output target...
-            final RouteTarget route = routeOrAtomic.left().get();
+            final GetAtomicRouteTarget route = routeOrAtomic.left().get();
             switch (route) {
                 case CONTINUE:
-                    sendRowToContinueTarget(meta, data, atomicId, row);
+                    putRowToContinueTarget(meta, data, atomicId, row);
                     return true;
 
                 case ERROR:
-                    sendRowToErrorTarget(data, row, ErrorCode.NO_SUCH_ATOMIC, "No Atomic object for id: " + atomicId + ", and ActionIfNoAtomic == Error");
+                    putRowToErrorTarget(data, row, ErrorCode.NO_SUCH_ATOMIC, "No Atomic object for id: " + atomicId + ", and ActionIfNoAtomic == Error");
                     return true;
 
                 case TIMEOUT:
-                    sendRowToErrorTarget(data, row, ErrorCode.NO_SUCH_ATOMIC_WAIT_TIMEOUT, "Timeout (" + meta.getWaitAtomicTimeout() + "ms) exceeded whilst waiting for Atomic object creation for id: " + atomicId + ", and ActionIfNoAtomic == Wait");
+                    // NOTE: this is intentionally sent to the error target at this stage, the timeout target is reserved for the await value part further below
+                    putRowToErrorTarget(data, row, ErrorCode.NO_SUCH_ATOMIC_WAIT_TIMEOUT, "Timeout (" + meta.getWaitAtomicTimeout() + "ms) exceeded whilst waiting for Atomic object creation for id: " + atomicId + ", and ActionIfNoAtomic == Wait");
                     return true;
 
                 case THREAD_INTERRUPTED:
-                    sendRowToErrorTarget(data, row, ErrorCode.NO_SUCH_ATOMIC_WAIT_INTERRUPTED, "Thread interrupted whilst waiting for Atomic object creation for id: " + atomicId + ", and ActionIfNoAtomic == Wait");
+                    putRowToErrorTarget(data, row, ErrorCode.NO_SUCH_ATOMIC_WAIT_INTERRUPTED, "Thread interrupted whilst waiting for Atomic object creation for id: " + atomicId + ", and ActionIfNoAtomic == Wait");
                     return true;
             }
         }
 
         // At this point we have an AtomicValue
-        AtomicValue atomicValue = routeOrAtomic.right().get();
+        final AtomicValue atomicValue = routeOrAtomic.right().get();
 
-        final AtomicType atomicType = meta.getAtomicType();
+        // 2. Check/Wait until the AtomicValue reaches one of the await values, and then get the target
+        final Either<AwaitAtomicRouteTarget, AwaitTarget> routeOrAwaitTarget = awaitAndGetTarget(meta, data, atomicId, atomicValue);
+        if (routeOrAwaitTarget.isLeft()) {
+            // AtomicValue never reached one of the await values, so route row to specific failure output target...
+            final AwaitAtomicRouteTarget route = routeOrAwaitTarget.left().get();
+            switch (route) {
+                case DEFAULT:
+                    putRowToDefaultTarget(data, row);
+                    return true;
 
-        AwaitTarget awaitTarget = null;
-        final List<AwaitTarget> awaitValues = meta.getAwaitValues();
-        if (awaitValues != null && !awaitValues.isEmpty()) {
-            final long waitLoopCheckPeriod = meta.getWaitLoopCheckPeriod();
-            final long waitLoopTimeout = meta.getWaitLoopTimeout();
+                case TIMEOUT:
+                    putRowToTimeoutTarget(meta, data, row);
+                    return true;
 
-            // check if one of the options is to await `null`
-            AwaitTarget awaitNullTarget = null;
-            for (final AwaitTarget awaitValue : awaitValues) {
-                if (awaitValue.getAtomicValue() == null) {
-                    awaitNullTarget = awaitValue;
-                    break;
-                }
+                case THREAD_INTERRUPTED:
+                    putRowToErrorTarget(data, row, ErrorCode.AWAIT_ATOMIC_WAIT_INTERRUPTED, "Thread interrupted whilst waiting for Atomic value for id: " + atomicId);
+                    return true;
             }
-
-            boolean atomicIsEqual = false;
-            long waited = 0;
-            while (true) {
-
-                if (awaitNullTarget != null && atomicValue == null) {
-                    // null is a valid value to check for, i.e. already discarded
-                    atomicIsEqual = true;
-                    awaitTarget = awaitNullTarget;
-
-                } else {
-                    atomicIsEqual = false;
-
-                    for (final AwaitTarget awaitValue : awaitValues) {
-                        @Nullable final String awaitAtomicValue = awaitValue.getAtomicValue();
-
-                        if (awaitAtomicValue == null) {
-                            // handled above in awaitNullTarget logic
-                            continue;
-
-                        } else if (AtomicType.Boolean == atomicType) {
-                            final AtomicBooleanValue atomicBoolean = (AtomicBooleanValue) atomicValue;
-                            final boolean awaitValueBoolean = Boolean.parseBoolean(awaitAtomicValue);
-                            atomicIsEqual = awaitValueBoolean == atomicBoolean.get();
-
-                        } else if (AtomicType.Integer == atomicType) {
-                            final int awaitValueInt = Integer.parseInt(awaitAtomicValue);
-                            final AtomicIntegerValue atomicInteger = (AtomicIntegerValue) atomicValue;
-                            atomicIsEqual = awaitValueInt == atomicInteger.get();
-
-                        } else {
-                            throw new IllegalArgumentException("Unknown AtomicType: " + atomicType.name());
-                        }
-
-                        if (atomicIsEqual) {
-                            awaitTarget = awaitValue;
-                            break; // atomic value is equal to expected, exit for loop
-                        }
-
-                    }  // end for
-                }
-
-
-                if (atomicIsEqual) {
-                    break; // atomic value is equal to expected, exit while loop
-                }
-
-                // wait and check again
-                try {
-                    Thread.sleep(waitLoopCheckPeriod);
-                    waited += waitLoopCheckPeriod;
-                    if (waitLoopTimeout != -1 && waited > waitLoopTimeout) {
-                        // TIMEOUT reached!
-
-                        // is there a timeout target step?
-                        final String metaTimeoutTargetStepName = meta.getTimeoutTargetStep() != null ? meta.getTimeoutTargetStep().getName() : meta.getTimeoutTargetStepname();
-                        if (isNotEmpty(metaTimeoutTargetStepName)) {
-
-                            // send row to the timeout output of the step
-                            this.putRowTo(data.getOutputRowMeta(), row, data.getTimeoutOutputRowSet());
-                            logLineNumber();
-
-                            return true; // row done!
-
-                        } else {
-                            // raise an exception
-                            throw new KettleException(BaseMessages.getString(PKG, "AwaitStep.Log.NoTimeoutTargetStep"));
-                        }
-                    }
-                } catch (final InterruptedException e) {
-                    Thread.currentThread().interrupt(); // restore interrupted flag
-                    // send row to the error output of the step
-                    final String errorMessage = "Thread interrupted whilst waiting for Atomic value for id: " + atomicId;
-                    this.putError(data.getOutputRowMeta(), row, 1L, errorMessage, data.getAtomicIdFieldName(), ErrorCode.AWAIT_ATOMIC_WAIT_INTERRUPTED.getCode());
-                    logLineNumber();
-                    return true; // row done!
-                }
-
-                // refresh the atomic object
-                atomicValue = data.getAtomic(atomicId, atomicType);
-
-            }  // end while
         }
 
-        if (awaitTarget != null) {
-            // send to specific target for Await success
-            final Set<RowSet> atomicValueTargetRowSets = data.getAtomicValueOutputRowSets().get(awaitTarget.getAtomicValue());
-            if (atomicValueTargetRowSets == null || atomicValueTargetRowSets.isEmpty()) {
-                throw new KettleException(BaseMessages.getString(PKG, "AwaitStep.Log.UnableToFindTargetRowSetForStep", new Object[] { awaitTarget.getTargetStep() != null ? awaitTarget.getTargetStep().getName() : awaitTarget.getTargetStepname() }));
+        // At this point we have an AwaitTarget, i.e. the AtomicValue matches an await value
+        final AwaitTarget awaitTarget = routeOrAwaitTarget.right().get();
+
+        // We now send the input row to specific targets for Await success
+        final Set<RowSet> atomicValueTargetRowSets = data.getAtomicValueOutputRowSets().get(awaitTarget.getAtomicValue());
+        if (atomicValueTargetRowSets == null || atomicValueTargetRowSets.isEmpty()) {
+            throw new KettleException(BaseMessages.getString(PKG, "AwaitStep.Log.UnableToFindTargetRowSetForStep", new Object[] { awaitTarget.getTargetStep() != null ? awaitTarget.getTargetStep().getName() : awaitTarget.getTargetStepname() }));
+        }
+
+        // send the row to the success targets
+        for (final RowSet awaitValueTargetRowSet : atomicValueTargetRowSets) {
+            this.putRowTo(data.getOutputRowMeta(), row, awaitValueTargetRowSet);
+        }
+
+        this.logDebug("Await DONE: <{0}>[{1}]", atomicId, strNullIfNull(nullIfEmpty(awaitTarget.getAtomicValue())));
+
+        if (awaitTarget.isDiscardAtomic()) {
+            // discard the atomic if user requested to do so
+            if (!data.removeAtomic(atomicId)) {
+                this.logError("Unable to discard Atomic with ID: {0}", atomicId);
             }
-
-            for (final RowSet awaitValueTargetRowSet : atomicValueTargetRowSets) {
-                this.putRowTo(data.getOutputRowMeta(), row, awaitValueTargetRowSet);
-            }
-
-            this.logDebug("Await DONE: <{0}>[{1}]", atomicId, strNullIfNull(nullIfEmpty(awaitTarget.getAtomicValue())));
-
-            if (awaitTarget.isDiscardAtomic()) {
-                // discard the atomic if requested to do so
-                if (!data.removeAtomic(atomicId)) {
-                    this.logError("Unable to discard Atomic with ID: {0}", atomicId);
-                }
-            }
-
-
-        } else {
-            //send to default output if no Await Target
-            this.putRow(data.getOutputRowMeta(), row);
         }
 
         logLineNumber();
@@ -243,6 +167,16 @@ public class AwaitStep extends BaseStep implements StepInterface {
         return true;  // row done!
     }
 
+    /**
+     * Get the Atomic ID from the input row.
+     *
+     * @param data the Await Step Data instance
+     * @param row the row
+     *
+     * @return the id from the row for the AtomicValue
+     *
+     * @throws KettleStepException if the Atomic ID is not a String
+     */
     private String getAtomicId(final AwaitStepData data, final Object[] row) throws KettleException {
         final Object atomicIdFieldNameValue = row[data.getAtomicIdFieldIndex()];
         if (atomicIdFieldNameValue instanceof String) {
@@ -254,15 +188,19 @@ public class AwaitStep extends BaseStep implements StepInterface {
     }
 
     /**
-     * Attempts to get the AtomicValue from {@link AtomicStorage}.
+     * Attempts to get (or initialise) the AtomicValue from {@link AtomicStorage}.
      *
      * This method internally may loop if {@link AwaitStepMeta#getActionIfNoAtomic()}
      * is set to {@link ActionIfNoAtomic#Wait}.
      *
+     * @param meta the Await Step Meta instance
+     * @param data the Await Step Data instance
+     * @param atomicId the id of the AtomicValue to get from AtomicStorage
+     *
      * @return Either a route to target if the AtomicValue cannot be retrieved (or initialised),
      *    or the AtomicValue if it was retrieved (or initialised).
      */
-    private Either<RouteTarget, AtomicValue> getAtomic(final AwaitStepMeta meta, final AwaitStepData data, final String atomicId) {
+    private Either<GetAtomicRouteTarget, AtomicValue> getAtomic(final AwaitStepMeta meta, final AwaitStepData data, final String atomicId) {
         final ActionIfNoAtomic actionIfNoAtomic = meta.getActionIfNoAtomic();
         final AtomicType atomicType = meta.getAtomicType();
         final long waitAtomicCheckPeriod = meta.getWaitAtomicCheckPeriod();
@@ -279,7 +217,7 @@ public class AwaitStep extends BaseStep implements StepInterface {
             }
 
             if (atomicValue != null) {
-                return Right(atomicValue);  // exit while loop
+                return Right(atomicValue);  // got atomicValue.. exit while loop and return it
             }
 
 
@@ -288,32 +226,130 @@ public class AwaitStep extends BaseStep implements StepInterface {
             */
 
             if (ActionIfNoAtomic.Continue == actionIfNoAtomic) {
-                return Left(RouteTarget.CONTINUE);
+                return Left(GetAtomicRouteTarget.CONTINUE);
 
             } else if (ActionIfNoAtomic.Error == actionIfNoAtomic) {
-                return Left(RouteTarget.ERROR);
+                return Left(GetAtomicRouteTarget.ERROR);
 
             } else if (ActionIfNoAtomic.Wait == actionIfNoAtomic) {
                 final long sleptFor = sleepWithTimeout(waitAtomicCheckPeriod, waitedForAtomic, waitAtomicTimeout);
                 if (sleptFor > 0) {
                     // slept OK
                     waitedForAtomic += sleptFor;
-                    continue;  // loop to try and get the atomic again
+                    // loop to try and get the atomic again
 
                 } else if (sleptFor == 0) {
                     // TIMEOUT reached after sleeping
-                    return Left(RouteTarget.TIMEOUT);
+                    return Left(GetAtomicRouteTarget.TIMEOUT);
 
                 } else {
                     // Thread INTERRUPTED whilst sleeping
-                    return Left(RouteTarget.THREAD_INTERRUPTED);
+                    return Left(GetAtomicRouteTarget.THREAD_INTERRUPTED);
                 }
             }
         }  // end while
     }
 
-    private void sendRowToContinueTarget(final AwaitStepMeta meta, final AwaitStepData data, final String atomicId, final Object[] row) throws KettleException {
-        // send row to the 'Continue' output of the step
+    /**
+     * Attempts to wait for the AtomicValue to become one of the await values.
+     *
+     * This method internally will loop approximately every {@link AwaitStepMeta#getWaitLoopCheckPeriod()}
+     * until the AtomicValue matches one of the await values, or {@link AwaitStepMeta#getWaitLoopTimeout()} is reached.
+     *
+     * @param meta the Await Step Meta instance
+     * @param data the Await Step Data instance
+     * @param atomicId the id of the AtomicValue
+     * @param atomicValue the AtomicValue on which we await to reach a specific value
+     *
+     * @return Either a route to target if the AtomicValue never matches one of the await values,
+     *    or the AwaitTarget to route the output to when it matches one of the await values.
+     */
+    private Either<AwaitAtomicRouteTarget, AwaitTarget> awaitAndGetTarget(final AwaitStepMeta meta, final AwaitStepData data, final String atomicId, AtomicValue atomicValue) {
+        final AtomicType atomicType = meta.getAtomicType();
+        final List<AwaitTarget> awaitValues = meta.getAwaitValues();
+        if (awaitValues != null && !awaitValues.isEmpty()) {
+
+            // check if one of the options is to await for `null`
+            final AwaitTarget awaitNullTarget = AwaitTarget.findAwaitTargetForNullValue(awaitValues);
+
+            final long waitLoopCheckPeriod = meta.getWaitLoopCheckPeriod();
+            final long waitLoopTimeout = meta.getWaitLoopTimeout();
+
+            long waited = 0;
+            while (true) {
+
+                if (awaitNullTarget != null && atomicValue == null) {
+                    // null is a valid value to check for, i.e. already discarded
+                    return Right(awaitNullTarget);
+
+                } else {
+
+                    for (final AwaitTarget awaitValue : awaitValues) {
+                        @Nullable final String awaitAtomicValue = awaitValue.getAtomicValue();
+
+                        if (awaitAtomicValue == null) {
+                            // handled above in awaitNullTarget logic
+                            continue;
+
+                        } else if (AtomicType.Boolean == atomicType) {
+                            final AtomicBooleanValue atomicBoolean = (AtomicBooleanValue) atomicValue;
+                            final boolean awaitValueBoolean = Boolean.parseBoolean(awaitAtomicValue);
+                            if (awaitValueBoolean == atomicBoolean.get()) {
+                                return Right(awaitValue);
+                            }
+
+                        } else if (AtomicType.Integer == atomicType) {
+                            final int awaitValueInt = Integer.parseInt(awaitAtomicValue);
+                            final AtomicIntegerValue atomicInteger = (AtomicIntegerValue) atomicValue;
+                            if (awaitValueInt == atomicInteger.get()) {
+                                return Right(awaitValue);
+                            }
+
+                        } else {
+                            throw new IllegalArgumentException("Unknown AtomicType: " + atomicType.name());
+                        }
+
+                    }  // end for
+                }
+
+                // wait and check again
+                final long sleptFor = sleepWithTimeout(waitLoopCheckPeriod, waited, waitLoopTimeout);
+
+                if (sleptFor > 0) {
+                    // slept OK
+                    waited += sleptFor;
+                    // loop to try and match the atomic value again
+
+                }  else if (sleptFor == 0) {
+                    // TIMEOUT reached after sleeping
+                    return Left(AwaitAtomicRouteTarget.TIMEOUT);
+
+                } else {
+                    // Thread INTERRUPTED whilst sleeping
+                    return Left(AwaitAtomicRouteTarget.THREAD_INTERRUPTED);
+                }
+
+                // refresh the atomic object
+                atomicValue = data.getAtomic(atomicId, atomicType);
+
+            }  // end while
+        }
+
+        // send to default output if no Await Target
+        return Left(AwaitAtomicRouteTarget.DEFAULT);
+    }
+
+    /**
+     * Send row to the 'Continue' output target of the step.
+     *
+     * @param meta the Await Step Meta instance
+     * @param data the Await Step Data instance
+     * @param atomicId the id of the AtomicValue
+     * @param row the row
+     *
+     * @throws KettleException if the continue target cannot be found, or writing the row causes an error
+     */
+    private void putRowToContinueTarget(final AwaitStepMeta meta, final AwaitStepData data, final String atomicId, final Object[] row) throws KettleException {
         this.logDebug("Await No Atomic object for id: {0}, and ActionIfNoAtomic == Continue", atomicId);
 
         // is there a Continue target step?
@@ -332,9 +368,57 @@ public class AwaitStep extends BaseStep implements StepInterface {
         }
     }
 
-    private void sendRowToErrorTarget(final AwaitStepData data, final Object[] row, final ErrorCode errorCode, final String errorMessage) throws KettleStepException {
+    /**
+     * Send row to the 'Timeout' output target of the step.
+     *
+     * @param meta the Await Step Meta instance
+     * @param data the Await Step Data instance
+     * @param row the row
+     *
+     * @throws KettleException if the timeout target cannot be found, or writing the row causes an error
+     */
+    private void putRowToTimeoutTarget(final AwaitStepMeta meta, final AwaitStepData data, final Object[] row) throws KettleException {
+        // is there a timeout target step?
+        final String metaTimeoutTargetStepName = meta.getTimeoutTargetStep() != null ? meta.getTimeoutTargetStep().getName() : meta.getTimeoutTargetStepname();
+        if (isNotEmpty(metaTimeoutTargetStepName)) {
+
+            // send row to the timeout output of the step
+            this.putRowTo(data.getOutputRowMeta(), row, data.getTimeoutOutputRowSet());
+
+            logLineNumber();
+
+        } else {
+            // raise an exception
+            throw new KettleException(BaseMessages.getString(PKG, "AwaitStep.Log.NoTimeoutTargetStep"));
+        }
+    }
+
+    /**
+     * Send row to the 'Error' output target of the step.
+     *
+     * @param data the Await Step Data instance
+     * @param row the row
+     * @param errorCode the error code
+     * @param errorMessage a description of the error
+     *
+     * @throws KettleStepException if writing the row causes an error
+     */
+    private void putRowToErrorTarget(final AwaitStepData data, final Object[] row, final ErrorCode errorCode, final String errorMessage) throws KettleStepException {
         // send row to the error output of the step
         this.putError(data.getOutputRowMeta(), row, 1L, errorMessage, data.getAtomicIdFieldName(), errorCode.getCode());
+        logLineNumber();
+    }
+
+    /**
+     * Send row to the default output target of the step.
+     *
+     * @param data the Await Step Data instance
+     * @param row the row
+     *
+     * @throws KettleStepException if writing the row causes an error
+     */
+    private void putRowToDefaultTarget(final AwaitStepData data, final Object[] row) throws KettleStepException {
+        this.putRow(data.getOutputRowMeta(), row);
         logLineNumber();
     }
 
@@ -415,64 +499,59 @@ public class AwaitStep extends BaseStep implements StepInterface {
             throw new KettleException(BaseMessages.getString( PKG, "AwaitStep.Exception.UnableToFindFieldName", atomicIdFieldName));
         }
 
-//        try {
+        final StepIOMetaInterface ioMeta = meta.getStepIOMeta();
 
-            final StepIOMetaInterface ioMeta = meta.getStepIOMeta();
-
-            // There is one or many CAS target for each target stream.
-            final List<StreamInterface> targetStreams = ioMeta.getTargetStreams();
-            for (int i = 0; i < targetStreams.size(); i++) {
-                final Object subject = targetStreams.get(i).getSubject();
-                if (subject == null) {
-                    continue;  // Skip over default option
-                }
-                if (!(subject instanceof AwaitTarget)) {
-                    continue;  // Skip over other target type
-                }
-
-                final AwaitTarget awaitValue = (AwaitTarget) subject;
-
-                final String awaitTargetStepName = awaitValue.getTargetStep() != null ? awaitValue.getTargetStep().getName() : awaitValue.getTargetStepname();
-                if (isNullOrEmpty(awaitTargetStepName)) {
-                    throw new KettleException(BaseMessages.getString(
-                            PKG, "AwaitStep.Log.NoTargetStepSpecifiedForValue", strNullIfNull(nullIfEmpty(awaitValue.getAtomicValue()))));
-                }
-
-                if (!IGNORE_STEPNAME_FOR_TEST.equals(awaitTargetStepName)) {
-                    final RowSet rowSet = findOutputRowSet(awaitTargetStepName);
-                    if (rowSet == null) {
-                        throw new KettleException(BaseMessages.getString(PKG, "AwaitStep.Log.UnableToFindAtomicValueTargetRowSetForStep", new Object[]{awaitTargetStepName}));
-                    }
-
-                    // store the await value and the rowset
-                    data.getAtomicValueOutputRowSets().put(awaitValue.getAtomicValue(), rowSet);
-                }
+        // There is one or many CAS target for each target stream.
+        final List<StreamInterface> targetStreams = ioMeta.getTargetStreams();
+        for (final StreamInterface targetStream : targetStreams) {
+            final Object subject = targetStream.getSubject();
+            if (subject == null) {
+                continue;  // Skip over default option
+            }
+            if (!(subject instanceof AwaitTarget)) {
+                continue;  // Skip over other target type
             }
 
+            final AwaitTarget awaitValue = (AwaitTarget) subject;
 
-            // The ioMeta object also has optional target streams for: continue, and timeout.
-
-            final String metaContinueTargetStepName = meta.getContinueTargetStep() != null ? meta.getContinueTargetStep().getName() : meta.getContinueTargetStepname();
-            if (isNotEmpty(metaContinueTargetStepName)) {
-                final RowSet rowSet = findOutputRowSet(metaContinueTargetStepName);
-                if (rowSet != null) {
-                    data.setContinueOutputRowSet(rowSet);
-                } else {
-                    throw new KettleException(BaseMessages.getString(PKG, "AwaitStep.Log.UnableToFindContinueTargetRowSetForStep", new Object[]{ metaContinueTargetStepName }));
-                }
+            final String awaitTargetStepName = awaitValue.getTargetStep() != null ? awaitValue.getTargetStep().getName() : awaitValue.getTargetStepname();
+            if (isNullOrEmpty(awaitTargetStepName)) {
+                throw new KettleException(BaseMessages.getString(
+                        PKG, "AwaitStep.Log.NoTargetStepSpecifiedForValue", strNullIfNull(nullIfEmpty(awaitValue.getAtomicValue()))));
             }
 
-            final String metaTimeoutTargetStepName = meta.getTimeoutTargetStep() != null ? meta.getTimeoutTargetStep().getName() : meta.getTimeoutTargetStepname();
-            if (isNotEmpty(metaTimeoutTargetStepName)) {
-                final RowSet rowSet = findOutputRowSet(metaTimeoutTargetStepName);
-                if (rowSet != null) {
-                    data.setTimeoutOutputRowSet(rowSet);
-                } else {
-                    throw new KettleException(BaseMessages.getString(PKG, "AwaitStep.Log.UnableToFindTimeoutTargetRowSetForStep", new Object[] { metaTimeoutTargetStepName }));
+            if (!IGNORE_STEPNAME_FOR_TEST.equals(awaitTargetStepName)) {
+                final RowSet rowSet = findOutputRowSet(awaitTargetStepName);
+                if (rowSet == null) {
+                    throw new KettleException(BaseMessages.getString(PKG, "AwaitStep.Log.UnableToFindAtomicValueTargetRowSetForStep", new Object[]{awaitTargetStepName}));
                 }
+
+                // store the await value and the rowset
+                data.getAtomicValueOutputRowSets().put(awaitValue.getAtomicValue(), rowSet);
             }
-//        } catch (final Exception e) {
-//            throw new KettleException(e);
-//        }
+        }
+
+
+        // The ioMeta object also has optional target streams for: continue, and timeout.
+
+        final String metaContinueTargetStepName = meta.getContinueTargetStep() != null ? meta.getContinueTargetStep().getName() : meta.getContinueTargetStepname();
+        if (isNotEmpty(metaContinueTargetStepName)) {
+            final RowSet rowSet = findOutputRowSet(metaContinueTargetStepName);
+            if (rowSet != null) {
+                data.setContinueOutputRowSet(rowSet);
+            } else {
+                throw new KettleException(BaseMessages.getString(PKG, "AwaitStep.Log.UnableToFindContinueTargetRowSetForStep", new Object[]{ metaContinueTargetStepName }));
+            }
+        }
+
+        final String metaTimeoutTargetStepName = meta.getTimeoutTargetStep() != null ? meta.getTimeoutTargetStep().getName() : meta.getTimeoutTargetStepname();
+        if (isNotEmpty(metaTimeoutTargetStepName)) {
+            final RowSet rowSet = findOutputRowSet(metaTimeoutTargetStepName);
+            if (rowSet != null) {
+                data.setTimeoutOutputRowSet(rowSet);
+            } else {
+                throw new KettleException(BaseMessages.getString(PKG, "AwaitStep.Log.UnableToFindTimeoutTargetRowSetForStep", new Object[] { metaTimeoutTargetStepName }));
+            }
+        }
     }
 }
