@@ -124,7 +124,7 @@ public class CompareAndSetStep extends BaseStep implements StepInterface {
             } else if (ActionIfNoAtomic.Error == actionIfNoAtomic) {
                 // send row to the error output of the step
                 final String errorMessage = "CAS No Atomic object for id: " + atomicId + ", and ActionIfNoAtomic == Error";
-                this.putError(data.getOutputRowMeta(), row, 1L, errorMessage, data.getAtomicIdFieldName(), ErrorCodes.NO_SUCH_ATOMIC.getCode());
+                this.putError(data.getOutputRowMeta(), row, 1L, errorMessage, data.getAtomicIdFieldName(), ErrorCode.NO_SUCH_ATOMIC.getCode());
                 logLineNumber();
                 return true; // row done!
 
@@ -136,7 +136,7 @@ public class CompareAndSetStep extends BaseStep implements StepInterface {
                         // TIMEOUT reached!
                         // send row to the error output of the step
                         final String errorMessage = "CAS Timeout (" + waitAtomicTimeout + "ms) exceeded whilst waiting for Atomic object creation for id: " + atomicId + ", and ActionIfNoAtomic == Wait";
-                        this.putError(data.getOutputRowMeta(), row, 1L, errorMessage, data.getAtomicIdFieldName(), ErrorCodes.NO_SUCH_ATOMIC_WAIT_TIMEOUT.getCode());
+                        this.putError(data.getOutputRowMeta(), row, 1L, errorMessage, data.getAtomicIdFieldName(), ErrorCode.NO_SUCH_ATOMIC_WAIT_TIMEOUT.getCode());
                         logLineNumber();
                         return true; // row done!
                     }
@@ -144,7 +144,7 @@ public class CompareAndSetStep extends BaseStep implements StepInterface {
                     Thread.currentThread().interrupt(); // restore interrupted flag
                     // send row to the error output of the step
                     final String errorMessage = "CAS Thread interrupted whilst waiting for Atomic object creation for id: " + atomicId + ", and ActionIfNoAtomic == Wait";
-                    this.putError(data.getOutputRowMeta(), row, 1L, errorMessage, data.getAtomicIdFieldName(), ErrorCodes.NO_SUCH_ATOMIC_WAIT_INTERRUPTED.getCode());
+                    this.putError(data.getOutputRowMeta(), row, 1L, errorMessage, data.getAtomicIdFieldName(), ErrorCode.NO_SUCH_ATOMIC_WAIT_INTERRUPTED.getCode());
                     logLineNumber();
                     return true; // row done!
                 }
@@ -221,7 +221,7 @@ public class CompareAndSetStep extends BaseStep implements StepInterface {
                 } else if (ActionIfUnableToSet.Error == actionIfUnableToSet) {
                     // send row to the error output of the step
                     final String errorMessage = "Unable to Compare And Set Value for: " + atomicId + ", and ActionIfUnableToSet == Error";
-                    this.putError(data.getOutputRowMeta(), row, 1L, errorMessage, data.getAtomicIdFieldName(), ErrorCodes.CAS_FAILED.getCode());
+                    this.putError(data.getOutputRowMeta(), row, 1L, errorMessage, data.getAtomicIdFieldName(), ErrorCode.CAS_FAILED.getCode());
                     logLineNumber();
                     return true; // row done!
 
@@ -255,7 +255,7 @@ public class CompareAndSetStep extends BaseStep implements StepInterface {
                         Thread.currentThread().interrupt(); // restore interrupted flag
                         // send row to the error output of the step
                         final String errorMessage = "Thread interrupted whilst waiting to CAS Atomic value for id: " + atomicId;
-                        this.putError(data.getOutputRowMeta(), row, 1L, errorMessage, data.getAtomicIdFieldName(), ErrorCodes.CAS_ATOMIC_WAIT_INTERRUPTED.getCode());
+                        this.putError(data.getOutputRowMeta(), row, 1L, errorMessage, data.getAtomicIdFieldName(), ErrorCode.CAS_ATOMIC_WAIT_INTERRUPTED.getCode());
                         logLineNumber();
                         return true; // row done!
                     }

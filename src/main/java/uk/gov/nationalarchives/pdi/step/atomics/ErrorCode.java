@@ -26,7 +26,7 @@ package uk.gov.nationalarchives.pdi.step.atomics;
  * Error Codes which can be produced by the Steps
  * when an error occurs.
  */
-public enum ErrorCodes {
+public enum ErrorCode {
     NO_SUCH_ATOMIC("NSA1", "No such Atomic Value"),
     NO_SUCH_ATOMIC_WAIT_TIMEOUT("NSA2", "Timeout reached when waiting for Atomic Value creation"),
     NO_SUCH_ATOMIC_WAIT_INTERRUPTED("NSA3", "Thread interrupted whilst waiting for Atomic Value creation"),
@@ -37,7 +37,7 @@ public enum ErrorCodes {
     private final String code;
     private final String description;
 
-    ErrorCodes(final String code, final  String description) {
+    ErrorCode(final String code, final  String description) {
         this.code = code;
         this.description = description;
     }
