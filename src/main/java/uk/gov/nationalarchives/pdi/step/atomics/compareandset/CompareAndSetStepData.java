@@ -26,73 +26,20 @@ import org.pentaho.di.core.RowSet;
 import org.pentaho.di.core.row.RowMetaInterface;
 import org.pentaho.di.trans.step.BaseStepData;
 import org.pentaho.di.trans.step.StepDataInterface;
-import uk.gov.nationalarchives.pdi.step.atomics.AtomicStorage;
-import uk.gov.nationalarchives.pdi.step.atomics.AtomicType;
-import uk.gov.nationalarchives.pdi.step.atomics.AtomicValue;
-import uk.gov.nationalarchives.pdi.step.atomics.OutputMap;
+import uk.gov.nationalarchives.pdi.step.atomics.*;
 
 import javax.annotation.Nullable;
 
 
-public class CompareAndSetStepData extends BaseStepData implements StepDataInterface {
+public class CompareAndSetStepData extends AbstractAtomicStepData {
 
-    private RowMetaInterface outputRowMeta;
-    private String atomicIdFieldName;
-    private int atomicIdFieldIndex;
-    private final OutputMap casOutputRowSets = new OutputMap();
-    private RowSet continueOutputRowSet = null;
     private RowSet skipOutputRowSet = null;
-    private RowSet timeoutOutputRowSet = null;
 
     public CompareAndSetStepData() {
         super();
     }
 
-    public @Nullable
-    AtomicValue getAtomic(final String id, final AtomicType atomicType) throws IllegalStateException {
-        return AtomicStorage.INSTANCE.getAtomic(id, atomicType);
-    }
-
-    public AtomicValue getOrCreateAtomic(final String id, final AtomicType atomicType, final String initialValue) throws IllegalStateException {
-        return AtomicStorage.INSTANCE.getOrCreateAtomic(id, atomicType, initialValue);
-    }
-
     // <editor-fold desc="get/set properties">
-    public RowMetaInterface getOutputRowMeta() {
-        return outputRowMeta;
-    }
-
-    public void setOutputRowMeta(final RowMetaInterface outputRowMeta) {
-        this.outputRowMeta = outputRowMeta;
-    }
-
-    public String getAtomicIdFieldName() {
-        return atomicIdFieldName;
-    }
-
-    public void setAtomicIdFieldName(final String atomicIdFieldName) {
-        this.atomicIdFieldName = atomicIdFieldName;
-    }
-
-    public int getAtomicIdFieldIndex() {
-        return atomicIdFieldIndex;
-    }
-
-    public void setAtomicIdFieldIndex(final int atomicIdFieldIndex) {
-        this.atomicIdFieldIndex = atomicIdFieldIndex;
-    }
-
-    public OutputMap getCasOutputRowSets() {
-        return casOutputRowSets;
-    }
-
-    public RowSet getContinueOutputRowSet() {
-        return continueOutputRowSet;
-    }
-
-    public void setContinueOutputRowSet(final RowSet continueOutputRowSet) {
-        this.continueOutputRowSet = continueOutputRowSet;
-    }
 
     public RowSet getSkipOutputRowSet() {
         return skipOutputRowSet;
@@ -100,14 +47,6 @@ public class CompareAndSetStepData extends BaseStepData implements StepDataInter
 
     public void setSkipOutputRowSet(final RowSet skipOutputRowSet) {
         this.skipOutputRowSet = skipOutputRowSet;
-    }
-
-    public RowSet getTimeoutOutputRowSet() {
-        return timeoutOutputRowSet;
-    }
-
-    public void setTimeoutOutputRowSet(final RowSet timeoutOutputRowSet) {
-        this.timeoutOutputRowSet = timeoutOutputRowSet;
     }
 
     // </editor-fold>

@@ -272,7 +272,7 @@ public class CompareAndSetStep extends BaseStep implements StepInterface {
 
         if (casTarget != null) {
             // send to specific target for CAS success
-            final Set<RowSet> casTargetRowSets = data.getCasOutputRowSets().get(casTarget.getCompareValue());
+            final Set<RowSet> casTargetRowSets = data.getOutputRowSets().get(casTarget.getCompareValue());
             if (casTargetRowSets == null || casTargetRowSets.isEmpty()) {
                 throw new KettleException(BaseMessages.getString(PKG, "CompareAndSetStep.Log.UnableToFindTargetRowSetForStep", new Object[] { casTarget.getTargetStep() != null ? casTarget.getTargetStep().getName() : casTarget.getTargetStepname() }));
             }
@@ -370,7 +370,7 @@ public class CompareAndSetStep extends BaseStep implements StepInterface {
                 }
 
                 // store the compare value and the rowset
-                data.getCasOutputRowSets().put(compareAndSetValue.getCompareValue(), rowSet);
+                data.getOutputRowSets().put(compareAndSetValue.getCompareValue(), rowSet);
             }
 
 

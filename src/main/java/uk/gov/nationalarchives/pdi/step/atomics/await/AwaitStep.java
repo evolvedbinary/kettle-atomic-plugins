@@ -143,7 +143,7 @@ public class AwaitStep extends BaseStep implements StepInterface {
         final AwaitTarget awaitTarget = routeOrAwaitTarget.right().get();
 
         // We now send the input row to specific targets for Await success
-        final Set<RowSet> atomicValueTargetRowSets = data.getAtomicValueOutputRowSets().get(awaitTarget.getAtomicValue());
+        final Set<RowSet> atomicValueTargetRowSets = data.getOutputRowSets().get(awaitTarget.getAtomicValue());
         if (atomicValueTargetRowSets == null || atomicValueTargetRowSets.isEmpty()) {
             throw new KettleException(BaseMessages.getString(PKG, "AwaitStep.Log.UnableToFindTargetRowSetForStep", new Object[] { awaitTarget.getTargetStep() != null ? awaitTarget.getTargetStep().getName() : awaitTarget.getTargetStepname() }));
         }
@@ -527,7 +527,7 @@ public class AwaitStep extends BaseStep implements StepInterface {
                 }
 
                 // store the await value and the rowset
-                data.getAtomicValueOutputRowSets().put(awaitValue.getAtomicValue(), rowSet);
+                data.getOutputRowSets().put(awaitValue.getAtomicValue(), rowSet);
             }
         }
 
