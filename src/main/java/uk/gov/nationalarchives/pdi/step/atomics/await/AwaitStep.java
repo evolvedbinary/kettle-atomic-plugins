@@ -102,16 +102,16 @@ public class AwaitStep extends BaseStep implements StepInterface {
                     return true;
 
                 case ERROR:
-                    putRowToErrorTarget(data, row, ErrorCode.NO_SUCH_ATOMIC, "No Atomic object for id: " + atomicId + ", and ActionIfNoAtomic == Error");
+                    putRowToErrorTarget(data, row, ErrorCode.NO_SUCH_ATOMIC, "Await No Atomic object for id: " + atomicId + ", and ActionIfNoAtomic == Error");
                     return true;
 
                 case TIMEOUT:
                     // NOTE: this is intentionally sent to the error target at this stage, the timeout target is reserved for the await value part further below
-                    putRowToErrorTarget(data, row, ErrorCode.NO_SUCH_ATOMIC_WAIT_TIMEOUT, "Timeout (" + meta.getWaitAtomicTimeout() + "ms) exceeded whilst waiting for Atomic object creation for id: " + atomicId + ", and ActionIfNoAtomic == Wait");
+                    putRowToErrorTarget(data, row, ErrorCode.NO_SUCH_ATOMIC_WAIT_TIMEOUT, "Await Timeout (" + meta.getWaitAtomicTimeout() + "ms) exceeded whilst waiting for Atomic object creation for id: " + atomicId + ", and ActionIfNoAtomic == Wait");
                     return true;
 
                 case THREAD_INTERRUPTED:
-                    putRowToErrorTarget(data, row, ErrorCode.NO_SUCH_ATOMIC_WAIT_INTERRUPTED, "Thread interrupted whilst waiting for Atomic object creation for id: " + atomicId + ", and ActionIfNoAtomic == Wait");
+                    putRowToErrorTarget(data, row, ErrorCode.NO_SUCH_ATOMIC_WAIT_INTERRUPTED, "Await Thread interrupted whilst waiting for Atomic object creation for id: " + atomicId + ", and ActionIfNoAtomic == Wait");
                     return true;
             }
         }
