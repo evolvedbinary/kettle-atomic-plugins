@@ -43,6 +43,7 @@ import org.pentaho.di.trans.step.errorhandling.StreamInterface;
 import org.pentaho.metastore.api.IMetaStore;
 import org.w3c.dom.NamedNodeMap;
 import org.w3c.dom.Node;
+import uk.gov.nationalarchives.pdi.step.atomics.AbstractAtomicStepMeta;
 import uk.gov.nationalarchives.pdi.step.atomics.ActionIfNoAtomic;
 import uk.gov.nationalarchives.pdi.step.atomics.AtomicType;
 
@@ -54,58 +55,30 @@ import static uk.gov.nationalarchives.pdi.step.atomics.Util.*;
 
 @Step(id = "AwaitStep", image = "AwaitStep.svg", name = "Await Atomic Value",
         description = "Waits for an Atomic Value to be Set", categoryDescription = "Flow")
-public class AwaitStepMeta extends BaseStepMeta implements StepMetaInterface {
+public class AwaitStepMeta extends AbstractAtomicStepMeta {
 
     private static Class<?> PKG = AwaitStep.class; // for i18n purposes, needed by Translator2!!   $NON-NLS-1$
 
     // <editor-fold desc="settings XML element names">
-    private static final String ELEM_NAME_ATOMIC_ID_FIELD_NAME = "atomicIdFieldName";
-    private static final String ELEM_NAME_ATOMIC_TYPE = "atomicType";
-    private static final String ELEM_NAME_ACTION_IF_NO_ATOMIC = "actionIfNoAtomic";
-    private static final String ATTR_NAME_CONTINUE_TARGET_STEP = "continueTargetStep";
-    private static final String ATTR_NAME_VALUE = "value";
-    private static final String ELEM_NAME_ATOMIC_VALUES = "atomicValues";
-    private static final String ELEM_NAME_ATOMIC_VALUE = "atomicValue";
     private static final String ATTR_NAME_AWAIT = "await";
     private static final String ATTR_NAME_DISCARD_ATOMIC = "discardAtomic";
-    private static final String ATTR_NAME_TARGET_STEP = "targetStep";
     private static final String ELEM_NAME_WAIT_LOOP = "waitLoop";
-    private static final String ATTR_NAME_CHECK_PERIOD = "checkPeriod";
-    private static final String ATTR_NAME_TIMEOUT = "timeout";
-    private static final String ATTR_NAME_TIMEOUT_TARGET_STEP = "timeoutTargetStep";
-    // </editor-fold>
 
-    private static final long DEFAULT_CHECK_PERIOD = 100; // ms
-    private static final long TIMEOUT_DISABLED = -1; // No timeout
-    private static final long DEFAULT_TIMEOUT = TIMEOUT_DISABLED;
+    // </editor-fold>
 
     private static final Stream NEW_CONTINUE_STREAM = new Stream(StreamInterface.StreamType.TARGET, (StepMeta)null, BaseMessages.getString(PKG, "AwaitStepMeta.TargetStream.Continue.Description", new String[0]), StreamIcon.TARGET, (Object)null);
     private static final Stream NEW_ATOMIC_VALUE_STREAM = new Stream(StreamInterface.StreamType.TARGET, (StepMeta)null, BaseMessages.getString(PKG, "AwaitStepMeta.TargetStream.AtomicValue.Description", new String[0]), StreamIcon.OUTPUT, (Object)null);
     private static final Stream NEW_TIMEOUT_STREAM = new Stream(StreamInterface.StreamType.TARGET, (StepMeta)null, BaseMessages.getString(PKG, "AwaitStepMeta.TargetStream.Timeout.Description", new String[0]), StreamIcon.FALSE, (Object)null);
 
     // <editor-fold desc="settings">
-    private String atomicIdFieldName;
-    private AtomicType atomicType;
-    private ActionIfNoAtomic actionIfNoAtomic;
-    private String continueTargetStepname;
-    @Nullable private String initialiseAtomicValue;
-    private long waitAtomicCheckPeriod = DEFAULT_CHECK_PERIOD;
-    private long waitAtomicTimeout = DEFAULT_TIMEOUT;
     @Nullable private List<AwaitTarget> awaitValues;
     private long waitLoopCheckPeriod = DEFAULT_CHECK_PERIOD;
     private long waitLoopTimeout = DEFAULT_TIMEOUT;
-    private String timeoutTargetStepname;
     // </editor-fold>
-
-    @Nullable private StepMeta continueTargetStep;
-    @Nullable private StepMeta timeoutTargetStep;
 
     @Override
     public void setDefault() {
-        atomicIdFieldName = "";
-        atomicType = AtomicType.Boolean;
-        actionIfNoAtomic = ActionIfNoAtomic.Continue;
-        initialiseAtomicValue = null;
+        super.setDefault();
         awaitValues = new ArrayList<>();
         waitLoopCheckPeriod = DEFAULT_CHECK_PERIOD;
         waitLoopTimeout = DEFAULT_TIMEOUT;
@@ -445,70 +418,6 @@ public class AwaitStepMeta extends BaseStepMeta implements StepMetaInterface {
     }
 
     // <editor-fold desc="settings getters and setters">
-    public String getAtomicIdFieldName() {
-        return atomicIdFieldName;
-    }
-
-    public void setAtomicIdFieldName(final String atomicIdFieldName) {
-        this.atomicIdFieldName = atomicIdFieldName;
-    }
-
-    public AtomicType getAtomicType() {
-        return atomicType;
-    }
-
-    public void setAtomicType(final AtomicType atomicType) {
-        this.atomicType = atomicType;
-    }
-
-    public ActionIfNoAtomic getActionIfNoAtomic() {
-        return actionIfNoAtomic;
-    }
-
-    public void setActionIfNoAtomic(final ActionIfNoAtomic actionIfNoAtomic) {
-        this.actionIfNoAtomic = actionIfNoAtomic;
-    }
-
-    public String getContinueTargetStepname() {
-        return continueTargetStepname;
-    }
-
-    public void setContinueTargetStepname(final String continueTargetStepname) {
-        this.continueTargetStepname = continueTargetStepname;
-    }
-
-    @Nullable public StepMeta getContinueTargetStep() {
-        return continueTargetStep;
-    }
-
-    public void setContinueTargetStep(@Nullable final StepMeta continueTargetStep) {
-        this.continueTargetStep = continueTargetStep;
-    }
-
-    public @Nullable String getInitialiseAtomicValue() {
-        return initialiseAtomicValue;
-    }
-
-    public void setInitialiseAtomicValue(@Nullable final String initialiseAtomicValue) {
-        this.initialiseAtomicValue = initialiseAtomicValue;
-    }
-
-    public long getWaitAtomicCheckPeriod() {
-        return waitAtomicCheckPeriod;
-    }
-
-    public void setWaitAtomicCheckPeriod(final long waitAtomicCheckPeriod) {
-        this.waitAtomicCheckPeriod = waitAtomicCheckPeriod;
-    }
-
-    public long getWaitAtomicTimeout() {
-        return waitAtomicTimeout;
-    }
-
-    public void setWaitAtomicTimeout(final long waitAtomicTimeout) {
-        this.waitAtomicTimeout = waitAtomicTimeout;
-    }
-
     public @Nullable List<AwaitTarget> getAwaitValues() {
         return awaitValues;
     }
@@ -532,22 +441,5 @@ public class AwaitStepMeta extends BaseStepMeta implements StepMetaInterface {
     public void setWaitLoopTimeout(final long waitLoopTimeout) {
         this.waitLoopTimeout = waitLoopTimeout;
     }
-
-    public String getTimeoutTargetStepname() {
-        return timeoutTargetStepname;
-    }
-
-    public void setTimeoutTargetStepname(final String timeoutTargetStepname) {
-        this.timeoutTargetStepname = timeoutTargetStepname;
-    }
-
-    public StepMeta getTimeoutTargetStep() {
-        return timeoutTargetStep;
-    }
-
-    public void setTimeoutTargetStep(final StepMeta timeoutTargetStep) {
-        this.timeoutTargetStep = timeoutTargetStep;
-    }
-
     // </editor-fold>
 }
