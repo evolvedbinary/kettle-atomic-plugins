@@ -22,91 +22,12 @@
  */
 package uk.gov.nationalarchives.pdi.step.atomics.await;
 
-import org.pentaho.di.core.RowSet;
-import org.pentaho.di.core.row.RowMetaInterface;
-import org.pentaho.di.trans.step.BaseStepData;
-import org.pentaho.di.trans.step.StepDataInterface;
-import uk.gov.nationalarchives.pdi.step.atomics.AtomicStorage;
-import uk.gov.nationalarchives.pdi.step.atomics.AtomicType;
-import uk.gov.nationalarchives.pdi.step.atomics.AtomicValue;
-
-import javax.annotation.Nullable;
+import uk.gov.nationalarchives.pdi.step.atomics.AbstractAtomicStepData;
 
 
-public class AwaitStepData extends BaseStepData implements StepDataInterface {
-
-    private RowMetaInterface outputRowMeta;
-    private String atomicIdFieldName;
-    private int atomicIdFieldIndex;
-    private RowSet continueOutputRowSet = null;
-    private RowSet atomicValueOutputRowSet = null;
-    private RowSet timeoutOutputRowSet = null;
+public class AwaitStepData extends AbstractAtomicStepData {
 
     public AwaitStepData() {
         super();
     }
-
-    public @Nullable
-    AtomicValue getAtomic(final String id, final AtomicType atomicType) throws IllegalStateException {
-        return AtomicStorage.INSTANCE.getAtomic(id, atomicType);
-    }
-
-    public AtomicValue getOrCreateAtomic(final String id, final AtomicType atomicType, final String initialValue) throws IllegalStateException {
-        return AtomicStorage.INSTANCE.getOrCreateAtomic(id, atomicType, initialValue);
-    }
-
-    public boolean removeAtomic(final String id) {
-        return AtomicStorage.INSTANCE.removeAtomic(id);
-    }
-
-    // <editor-fold desc="get/set properties">
-    public RowMetaInterface getOutputRowMeta() {
-        return outputRowMeta;
-    }
-
-    public void setOutputRowMeta(final RowMetaInterface outputRowMeta) {
-        this.outputRowMeta = outputRowMeta;
-    }
-
-    public String getAtomicIdFieldName() {
-        return atomicIdFieldName;
-    }
-
-    public void setAtomicIdFieldName(final String atomicIdFieldName) {
-        this.atomicIdFieldName = atomicIdFieldName;
-    }
-
-    public int getAtomicIdFieldIndex() {
-        return atomicIdFieldIndex;
-    }
-
-    public void setAtomicIdFieldIndex(final int atomicIdFieldIndex) {
-        this.atomicIdFieldIndex = atomicIdFieldIndex;
-    }
-
-    public RowSet getContinueOutputRowSet() {
-        return continueOutputRowSet;
-    }
-
-    public void setContinueOutputRowSet(final RowSet continueOutputRowSet) {
-        this.continueOutputRowSet = continueOutputRowSet;
-    }
-
-    public RowSet getAtomicValueOutputRowSet() {
-        return atomicValueOutputRowSet;
-    }
-
-    public void setAtomicValueOutputRowSet(final RowSet atomicValueOutputRowSet) {
-        this.atomicValueOutputRowSet = atomicValueOutputRowSet;
-    }
-
-    public RowSet getTimeoutOutputRowSet() {
-        return timeoutOutputRowSet;
-    }
-
-    public void setTimeoutOutputRowSet(final RowSet timeoutOutputRowSet) {
-        this.timeoutOutputRowSet = timeoutOutputRowSet;
-    }
-
-    // </editor-fold>
 }

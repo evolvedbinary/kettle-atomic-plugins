@@ -59,6 +59,38 @@ public interface Util {
     }
 
     /**
+     * Given a String, returns a the String "null" if the string is null, or
+     * otherwise the String.
+     *
+     * @param s a String
+     *
+     * @return the String "null" if {@code s == null}, else a string.
+     */
+    static String strNullIfNull(@Nullable final String s) {
+        if (s == null) {
+            return "null";
+        } else {
+            return s;
+        }
+    }
+
+    /**
+     * Given a String, returns null if the String is "null" or null, or
+     * otherwise the String.
+     *
+     * @param s a String
+     *
+     * @return null if the String is "null" or null, else a string.
+     */
+    static String nullIfStrNull(@Nullable final String s) {
+        if (s == null || "null".equals(s)) {
+            return null;
+        } else {
+            return s;
+        }
+    }
+
+    /**
      * Returns true if the String is either null or empty.
      *
      * @param s a String

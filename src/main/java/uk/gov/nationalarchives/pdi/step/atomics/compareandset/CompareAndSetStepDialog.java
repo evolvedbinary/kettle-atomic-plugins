@@ -730,8 +730,8 @@ public class CompareAndSetStepDialog extends BaseStepDialog implements StepDialo
             wCompareAndSetTableView.getTable().removeAll();
             for (final CompareAndSetTarget compareAndSetValue : compareAndSetValues) {
                 // TODO(AR) fix atomic types?
-                final String targetStepname = compareAndSetValue.getTargetStep() == null ? "" : compareAndSetValue.getTargetStep().getName();
-                wCompareAndSetTableView.add(new String[]  {compareAndSetValue.getCompareValue(), compareAndSetValue.getSetValue(),  targetStepname});
+                final String targetStepname = compareAndSetValue.getTargetStep() != null ? compareAndSetValue.getTargetStep().getName() : compareAndSetValue.getTargetStepname();
+                wCompareAndSetTableView.add(new String[]  {compareAndSetValue.getCompareValue(), compareAndSetValue.getSetValue(),  emptyIfNull(targetStepname)});
             }
         }
     }

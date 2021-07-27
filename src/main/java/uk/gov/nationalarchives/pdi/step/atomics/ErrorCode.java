@@ -20,29 +20,33 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package uk.gov.nationalarchives.pdi.step.atomics.compareandset;
+package uk.gov.nationalarchives.pdi.step.atomics;
 
-import org.pentaho.di.core.RowSet;
+/**
+ * Error Codes which can be produced by the Steps
+ * when an error occurs.
+ */
+public enum ErrorCode {
+    NO_SUCH_ATOMIC("NSA1", "No such Atomic Value"),
+    NO_SUCH_ATOMIC_WAIT_TIMEOUT("NSA2", "Timeout reached when waiting for Atomic Value creation"),
+    NO_SUCH_ATOMIC_WAIT_INTERRUPTED("NSA3", "Thread interrupted whilst waiting for Atomic Value creation"),
+    AWAIT_ATOMIC_WAIT_INTERRUPTED("AWA4", "Thread interrupted whilst waiting for Atomic Value"),
+    CAS_ATOMIC_WAIT_INTERRUPTED("CAS5", "Thread interrupted whilst waiting to CAS Atomic Value"),
+    CAS_FAILED("CAS6", "Comparison failed when setting value");
 
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
+    private final String code;
+    private final String description;
 
-public class OutputMap {
-
-    private final Map<String, Set<RowSet>> mapSet = new HashMap<>();
-
-    public Set<RowSet> get(final String key) {
-        return mapSet.get(key);
+    ErrorCode(final String code, final  String description) {
+        this.code = code;
+        this.description = description;
     }
 
-    public void put(final String key, final RowSet rowSet) {
-        Set<RowSet> existing = mapSet.get(key);
-        if (existing == null) {
-            existing = new HashSet<>();
-            mapSet.put(key, existing);
-        }
-        existing.add(rowSet);
+    public String getCode() {
+        return code;
+    }
+
+    public String getDescription() {
+        return description;
     }
 }

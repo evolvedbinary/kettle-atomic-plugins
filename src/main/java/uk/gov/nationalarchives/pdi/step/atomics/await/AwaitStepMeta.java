@@ -43,6 +43,7 @@ import org.pentaho.di.trans.step.errorhandling.StreamInterface;
 import org.pentaho.metastore.api.IMetaStore;
 import org.w3c.dom.NamedNodeMap;
 import org.w3c.dom.Node;
+import uk.gov.nationalarchives.pdi.step.atomics.AbstractAtomicStepMeta;
 import uk.gov.nationalarchives.pdi.step.atomics.ActionIfNoAtomic;
 import uk.gov.nationalarchives.pdi.step.atomics.AtomicType;
 
@@ -50,66 +51,35 @@ import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.List;
 
-import static uk.gov.nationalarchives.pdi.step.atomics.Util.isNotEmpty;
-import static uk.gov.nationalarchives.pdi.step.atomics.Util.isNullOrEmpty;
+import static uk.gov.nationalarchives.pdi.step.atomics.Util.*;
 
 @Step(id = "AwaitStep", image = "AwaitStep.svg", name = "Await Atomic Value",
         description = "Waits for an Atomic Value to be Set", categoryDescription = "Flow")
-public class AwaitStepMeta extends BaseStepMeta implements StepMetaInterface {
+public class AwaitStepMeta extends AbstractAtomicStepMeta {
 
     private static Class<?> PKG = AwaitStep.class; // for i18n purposes, needed by Translator2!!   $NON-NLS-1$
 
     // <editor-fold desc="settings XML element names">
-    private static final String ELEM_NAME_ATOMIC_ID_FIELD_NAME = "atomicIdFieldName";
-    private static final String ELEM_NAME_ATOMIC_TYPE = "atomicType";
-    private static final String ELEM_NAME_ACTION_IF_NO_ATOMIC = "actionIfNoAtomic";
-    private static final String ATTR_NAME_CONTINUE_TARGET_STEP = "continueTargetStep";
-    private static final String ATTR_NAME_VALUE = "value";
-    private static final String ELEM_NAME_ATOMIC_VALUE = "atomicValue";
-    private static final String ATTR_NAME_TARGET_STEP = "targetStep";
+    private static final String ATTR_NAME_AWAIT = "await";
     private static final String ATTR_NAME_DISCARD_ATOMIC = "discardAtomic";
     private static final String ELEM_NAME_WAIT_LOOP = "waitLoop";
-    private static final String ATTR_NAME_CHECK_PERIOD = "checkPeriod";
-    private static final String ATTR_NAME_TIMEOUT = "timeout";
-    private static final String ATTR_NAME_TIMEOUT_TARGET_STEP = "timeoutTargetStep";
-    // </editor-fold>
 
-    private static final long DEFAULT_CHECK_PERIOD = 100; // ms
-    private static final long TIMEOUT_DISABLED = -1; // No timeout
-    private static final long DEFAULT_TIMEOUT = TIMEOUT_DISABLED;
+    // </editor-fold>
 
     private static final Stream NEW_CONTINUE_STREAM = new Stream(StreamInterface.StreamType.TARGET, (StepMeta)null, BaseMessages.getString(PKG, "AwaitStepMeta.TargetStream.Continue.Description", new String[0]), StreamIcon.TARGET, (Object)null);
     private static final Stream NEW_ATOMIC_VALUE_STREAM = new Stream(StreamInterface.StreamType.TARGET, (StepMeta)null, BaseMessages.getString(PKG, "AwaitStepMeta.TargetStream.AtomicValue.Description", new String[0]), StreamIcon.OUTPUT, (Object)null);
     private static final Stream NEW_TIMEOUT_STREAM = new Stream(StreamInterface.StreamType.TARGET, (StepMeta)null, BaseMessages.getString(PKG, "AwaitStepMeta.TargetStream.Timeout.Description", new String[0]), StreamIcon.FALSE, (Object)null);
 
     // <editor-fold desc="settings">
-    private String atomicIdFieldName;
-    private AtomicType atomicType;
-    private ActionIfNoAtomic actionIfNoAtomic;
-    private String continueTargetStepname;
-    @Nullable private String initialiseAtomicValue;
-    private long waitAtomicCheckPeriod = DEFAULT_CHECK_PERIOD;
-    private long waitAtomicTimeout = DEFAULT_TIMEOUT;
-    private String atomicValue;
-    private String atomicValueTargetStepname;
-    private boolean discardAtomic;
+    @Nullable private List<AwaitTarget> awaitValues;
     private long waitLoopCheckPeriod = DEFAULT_CHECK_PERIOD;
     private long waitLoopTimeout = DEFAULT_TIMEOUT;
-    private String timeoutTargetStepname;
     // </editor-fold>
-
-    @Nullable private StepMeta continueTargetStep;
-    @Nullable private StepMeta atomicValueTargetStep;
-    @Nullable private StepMeta timeoutTargetStep;
 
     @Override
     public void setDefault() {
-        atomicIdFieldName = "";
-        atomicType = AtomicType.Boolean;
-        actionIfNoAtomic = ActionIfNoAtomic.Continue;
-        initialiseAtomicValue = null;
-        atomicValue = "true";
-        discardAtomic = false;
+        super.setDefault();
+        awaitValues = new ArrayList<>();
         waitLoopCheckPeriod = DEFAULT_CHECK_PERIOD;
         waitLoopTimeout = DEFAULT_TIMEOUT;
     }
@@ -136,11 +106,13 @@ public class AwaitStepMeta extends BaseStepMeta implements StepMetaInterface {
             builder.append(XMLHandler.addTagValue(ELEM_NAME_ACTION_IF_NO_ATOMIC, actionIfNoAtomic.name()));
         }
 
-        final String xAtomicValueTargetStepname = this.atomicValueTargetStep != null ? this.atomicValueTargetStep.getName() : this.atomicValueTargetStepname;
-        if (!isNullOrEmpty(xAtomicValueTargetStepname)) {
-            builder.append(XMLHandler.addTagValue(ELEM_NAME_ATOMIC_VALUE, atomicValue, true, ATTR_NAME_TARGET_STEP, xAtomicValueTargetStepname, ATTR_NAME_DISCARD_ATOMIC, Boolean.toString(discardAtomic)));
-        } else {
-            builder.append(XMLHandler.addTagValue(ELEM_NAME_ATOMIC_VALUE, atomicValue, true, ATTR_NAME_DISCARD_ATOMIC, Boolean.toString(discardAtomic)));
+        if (awaitValues != null) {
+            builder.append(XMLHandler.openTag(ELEM_NAME_ATOMIC_VALUES));
+            for (final AwaitTarget awaitValue : awaitValues) {
+                final String xTargetStepname = awaitValue.getTargetStep() != null ? awaitValue.getTargetStep().getName() : awaitValue.getTargetStepname();
+                builder.append(XMLHandler.addTagValue(ELEM_NAME_ATOMIC_VALUE, null, true, ATTR_NAME_AWAIT, strNullIfNull(nullIfEmpty(awaitValue.getAtomicValue())), ATTR_NAME_DISCARD_ATOMIC, Boolean.toString(awaitValue.isDiscardAtomic()), ATTR_NAME_TARGET_STEP, xTargetStepname));
+            }
+            builder.append(XMLHandler.closeTag(ELEM_NAME_ATOMIC_VALUES));
         }
 
         final String xTimeoutTargetStepname = this.timeoutTargetStep != null ? this.timeoutTargetStep.getName() : this.timeoutTargetStepname;
@@ -211,20 +183,23 @@ public class AwaitStepMeta extends BaseStepMeta implements StepMetaInterface {
                 }
             }
 
-            final String xAtomicValue = XMLHandler.getTagValue(stepnode, ELEM_NAME_ATOMIC_VALUE);
-            if (xAtomicValue != null) {
-                final Node node = XMLHandler.getSubNode(stepnode, ELEM_NAME_ATOMIC_VALUE);
-                final String xAtomicValueTargetStepname = XMLHandler.getTagAttribute(node, ATTR_NAME_TARGET_STEP);
-                if (xAtomicValueTargetStepname != null) {
-                    this.atomicValueTargetStepname = xAtomicValueTargetStepname;
-                }
-                final String xDiscardAtomic = XMLHandler.getTagAttribute(node, ATTR_NAME_DISCARD_ATOMIC);
-                this.discardAtomic = isNotEmpty(xDiscardAtomic) ? Boolean.parseBoolean(xDiscardAtomic) : false;
-
-                try {
-                    this.atomicValue = atomicType.checkValidValue(xAtomicValue);
-                } catch (final IllegalArgumentException e) {
-                    throw new KettleXMLException("Atomic value '" + xAtomicValue + "' is invalid for type: '" + xAtomicType + "': " + e.getMessage(), e);
+            final Node nAtomicValues = XMLHandler.getSubNode(stepnode, ELEM_NAME_ATOMIC_VALUES);
+            if (nAtomicValues != null) {
+                this.awaitValues = new ArrayList<>();
+                final List<Node> nlAtomicValue = XMLHandler.getNodes(nAtomicValues, ELEM_NAME_ATOMIC_VALUE);
+                if (nlAtomicValue != null) {
+                    for (final Node nAtomicValue : nlAtomicValue) {
+                        final NamedNodeMap attrs = nAtomicValue.getAttributes();
+                        if (attrs != null) {
+                            final Node nAwait = attrs.getNamedItem(ATTR_NAME_AWAIT);
+                            final Node nDiscardAtomic = attrs.getNamedItem(ATTR_NAME_DISCARD_ATOMIC);
+                            final Node nTarget = attrs.getNamedItem(ATTR_NAME_TARGET_STEP);
+                            if (nAwait != null && nDiscardAtomic != null) {
+                                final AwaitTarget awaitValue = new AwaitTarget(nullIfStrNull(nullIfEmpty(nAwait.getNodeValue())), Boolean.valueOf(nDiscardAtomic.getNodeValue()), nTarget == null ? null : nTarget.getNodeValue());
+                                this.awaitValues.add(awaitValue);
+                            }
+                        }
+                    }
                 }
             }
 
@@ -280,21 +255,34 @@ public class AwaitStepMeta extends BaseStepMeta implements StepMetaInterface {
                       final StepMeta stepMeta, final RowMetaInterface prev, final String input[], final String output[],
                       final RowMetaInterface info, final VariableSpace space, final Repository repository,
                       final IMetaStore metaStore) {
-        CheckResult cr;
+
+        final StepIOMetaInterface ioMeta = this.getStepIOMeta();
+        final List<StreamInterface> targetStreams = ioMeta.getTargetStreams();
+        for (final StreamInterface targetStream : targetStreams) {
+            final Object subject = targetStream.getSubject();
+            if (subject != null && subject instanceof AwaitTarget) {
+                final AwaitTarget awaitValue = (AwaitTarget) subject;
+                if (awaitValue.getTargetStep() == null) {
+                    final CheckResult cr = new CheckResult(CheckResultInterface.TYPE_RESULT_ERROR, BaseMessages.getString(PKG, "AwaitStepMeta.CheckResult.TargetStepInvalid", new String[]{"false", awaitValue.getTargetStepname()}), stepMeta);
+                    remarks.add(cr);
+                }
+            }
+        }
+
         if (prev == null || prev.size() == 0) {
-            cr = new CheckResult(CheckResultInterface.TYPE_RESULT_WARNING, BaseMessages.getString(PKG, "AwaitStepMeta.CheckResult.NotReceivingFields"), stepMeta);
+            final CheckResult cr = new CheckResult(CheckResultInterface.TYPE_RESULT_WARNING, BaseMessages.getString(PKG, "AwaitStepMeta.CheckResult.NotReceivingFields"), stepMeta);
             remarks.add(cr);
         } else {
-            cr = new CheckResult(CheckResultInterface.TYPE_RESULT_OK, BaseMessages.getString(PKG, "AwaitStepMeta.CheckResult.StepRecevingData", prev.size() + ""), stepMeta);
+            final CheckResult cr = new CheckResult(CheckResultInterface.TYPE_RESULT_OK, BaseMessages.getString(PKG, "AwaitStepMeta.CheckResult.StepRecevingData", prev.size() + ""), stepMeta);
             remarks.add(cr);
         }
 
         // See if we have input streams leading to this step!
         if (input.length > 0) {
-            cr = new CheckResult(CheckResultInterface.TYPE_RESULT_OK, BaseMessages.getString(PKG, "AwaitStepMeta.CheckResult.StepRecevingData2"), stepMeta);
+            final CheckResult cr = new CheckResult(CheckResultInterface.TYPE_RESULT_OK, BaseMessages.getString(PKG, "AwaitStepMeta.CheckResult.StepRecevingData2"), stepMeta);
             remarks.add(cr);
         } else {
-            cr = new CheckResult(CheckResultInterface.TYPE_RESULT_ERROR, BaseMessages.getString(PKG, "AwaitStepMeta.CheckResult.NoInputReceivedFromOtherSteps"), stepMeta);
+            final CheckResult cr = new CheckResult(CheckResultInterface.TYPE_RESULT_ERROR, BaseMessages.getString(PKG, "AwaitStepMeta.CheckResult.NoInputReceivedFromOtherSteps"), stepMeta);
             remarks.add(cr);
         }
     }
@@ -335,8 +323,11 @@ public class AwaitStepMeta extends BaseStepMeta implements StepMetaInterface {
                 ((StepIOMetaInterface)ioMeta).addStream(new Stream(StreamInterface.StreamType.TARGET, this.getContinueTargetStep(), BaseMessages.getString(PKG, "AwaitStepMeta.TargetStream.Continue.Description", new String[0]), StreamIcon.TARGET, (Object)null));
             }
 
-            if (this.getAtomicValueTargetStep() != null) {
-                ((StepIOMetaInterface)ioMeta).addStream(new Stream(StreamInterface.StreamType.TARGET, this.getAtomicValueTargetStep(), BaseMessages.getString(PKG, "AwaitStepMeta.TargetStream.AtomicValue.Description", new String[0]), StreamIcon.OUTPUT, (Object)null));
+            if (awaitValues != null) {
+                for (final AwaitTarget awaitValue : awaitValues) {
+                    final StreamInterface stream = new Stream(StreamInterface.StreamType.TARGET, awaitValue.getTargetStep(), BaseMessages.getString(PKG, "AwaitStepMeta.TargetStream.AtomicValue.Description", new String[]{ strNullIfNull(nullIfEmpty(awaitValue.getAtomicValue())) }), StreamIcon.TARGET, awaitValue);
+                    ((StepIOMetaInterface) ioMeta).addStream(stream);
+                }
             }
 
             if (this.getTimeoutTargetStep() != null) {
@@ -351,20 +342,19 @@ public class AwaitStepMeta extends BaseStepMeta implements StepMetaInterface {
 
     @Override
     public void searchInfoAndTargetSteps(final List<StepMeta> steps) {
-//        final List<StreamInterface> targetStreams = this.getStepIOMeta().getTargetStreams();
-//        final Iterator<StreamInterface> it = targetStreams.iterator();
-//
-//        while (it.hasNext()) {
-//            StreamInterface stream = it.next();
-//            SwitchCaseTarget target = (SwitchCaseTarget)stream.getSubject();
-//            if (target != null) {
-//                StepMeta stepMeta = StepMeta.findStep(steps, target.caseTargetStepname);
-//                target.caseTargetStep = stepMeta;
-//            }
-//        }
+        final List<StreamInterface> targetStreams = this.getStepIOMeta().getTargetStreams();
+        for (final StreamInterface targetStream : targetStreams) {
+            final Object subject = targetStream.getSubject();
+            if (subject != null && subject instanceof AwaitTarget) {
+                final AwaitTarget awaitValue = (AwaitTarget) subject;
+                final StepMeta stepMeta = StepMeta.findStep(steps, awaitValue.getTargetStepname());
+                awaitValue.setTargetStep(stepMeta);
+            } else {
+                log.logMinimal("Unexpected Target Stream Subject Type: " + subject);
+            }
+        }
 
         this.continueTargetStep = StepMeta.findStep(steps, this.continueTargetStepname);
-        this.atomicValueTargetStep = StepMeta.findStep(steps, this.atomicValueTargetStepname);
         this.timeoutTargetStep = StepMeta.findStep(steps, this.timeoutTargetStepname);
         this.resetStepIoMeta();
     }
@@ -375,14 +365,11 @@ public class AwaitStepMeta extends BaseStepMeta implements StepMetaInterface {
         if (this.getContinueTargetStep() == null) {
             list.add(NEW_CONTINUE_STREAM);
         }
-        if (this.getAtomicValueTargetStep() == null) {
-            list.add(NEW_ATOMIC_VALUE_STREAM);
-        }
         if (this.getTimeoutTargetStep() == null) {
             list.add(NEW_TIMEOUT_STREAM);
         }
 
-//        list.add(newCaseTargetStream);
+        list.add(NEW_ATOMIC_VALUE_STREAM);
         return list;
     }
 
@@ -392,7 +379,16 @@ public class AwaitStepMeta extends BaseStepMeta implements StepMetaInterface {
             this.setContinueTargetStep(stream.getStepMeta());
 
         } else if (stream == NEW_ATOMIC_VALUE_STREAM) {
-            this.setAtomicValueTargetStep(stream.getStepMeta());
+            final AwaitTarget awaitValue;
+            if (atomicType == AtomicType.Integer) {
+                awaitValue = new AwaitTarget("12345", false, stream.getStepMeta());
+            } else {
+                awaitValue = new AwaitTarget("true", false, stream.getStepMeta());
+            }
+            if (this.awaitValues == null) {
+                this.awaitValues = new ArrayList<>(1);
+            }
+            this.awaitValues.add(awaitValue);
 
         } else if (stream == NEW_TIMEOUT_STREAM) {
             this.setTimeoutTargetStep(stream.getStepMeta());
@@ -422,100 +418,12 @@ public class AwaitStepMeta extends BaseStepMeta implements StepMetaInterface {
     }
 
     // <editor-fold desc="settings getters and setters">
-    public String getAtomicIdFieldName() {
-        return atomicIdFieldName;
+    public @Nullable List<AwaitTarget> getAwaitValues() {
+        return awaitValues;
     }
 
-    public void setAtomicIdFieldName(final String atomicIdFieldName) {
-        this.atomicIdFieldName = atomicIdFieldName;
-    }
-
-    public AtomicType getAtomicType() {
-        return atomicType;
-    }
-
-    public void setAtomicType(final AtomicType atomicType) {
-        this.atomicType = atomicType;
-    }
-
-    public ActionIfNoAtomic getActionIfNoAtomic() {
-        return actionIfNoAtomic;
-    }
-
-    public void setActionIfNoAtomic(final ActionIfNoAtomic actionIfNoAtomic) {
-        this.actionIfNoAtomic = actionIfNoAtomic;
-    }
-
-    public String getContinueTargetStepname() {
-        return continueTargetStepname;
-    }
-
-    public void setContinueTargetStepname(final String continueTargetStepname) {
-        this.continueTargetStepname = continueTargetStepname;
-    }
-
-    @Nullable public StepMeta getContinueTargetStep() {
-        return continueTargetStep;
-    }
-
-    public void setContinueTargetStep(@Nullable final StepMeta continueTargetStep) {
-        this.continueTargetStep = continueTargetStep;
-    }
-
-    public @Nullable String getInitialiseAtomicValue() {
-        return initialiseAtomicValue;
-    }
-
-    public void setInitialiseAtomicValue(@Nullable final String initialiseAtomicValue) {
-        this.initialiseAtomicValue = initialiseAtomicValue;
-    }
-
-    public long getWaitAtomicCheckPeriod() {
-        return waitAtomicCheckPeriod;
-    }
-
-    public void setWaitAtomicCheckPeriod(final long waitAtomicCheckPeriod) {
-        this.waitAtomicCheckPeriod = waitAtomicCheckPeriod;
-    }
-
-    public long getWaitAtomicTimeout() {
-        return waitAtomicTimeout;
-    }
-
-    public void setWaitAtomicTimeout(final long waitAtomicTimeout) {
-        this.waitAtomicTimeout = waitAtomicTimeout;
-    }
-
-    public String getAtomicValue() {
-        return atomicValue;
-    }
-
-    public void setAtomicValue(final String atomicValue) {
-        this.atomicValue = atomicValue;
-    }
-
-    public String getAtomicValueTargetStepname() {
-        return atomicValueTargetStepname;
-    }
-
-    public void setAtomicValueTargetStepname(final String atomicValueTargetStepname) {
-        this.atomicValueTargetStepname = atomicValueTargetStepname;
-    }
-
-    @Nullable public StepMeta getAtomicValueTargetStep() {
-        return atomicValueTargetStep;
-    }
-
-    public void setAtomicValueTargetStep(@Nullable final StepMeta atomicValueTargetStep) {
-        this.atomicValueTargetStep = atomicValueTargetStep;
-    }
-
-    public boolean isDiscardAtomic() {
-        return discardAtomic;
-    }
-
-    public void setDiscardAtomic(final boolean discardAtomic) {
-        this.discardAtomic = discardAtomic;
+    public void setAwaitValues(@Nullable final List<AwaitTarget> awaitValues) {
+        this.awaitValues = awaitValues;
     }
 
     public long getWaitLoopCheckPeriod() {
@@ -533,22 +441,5 @@ public class AwaitStepMeta extends BaseStepMeta implements StepMetaInterface {
     public void setWaitLoopTimeout(final long waitLoopTimeout) {
         this.waitLoopTimeout = waitLoopTimeout;
     }
-
-    public String getTimeoutTargetStepname() {
-        return timeoutTargetStepname;
-    }
-
-    public void setTimeoutTargetStepname(final String timeoutTargetStepname) {
-        this.timeoutTargetStepname = timeoutTargetStepname;
-    }
-
-    public StepMeta getTimeoutTargetStep() {
-        return timeoutTargetStep;
-    }
-
-    public void setTimeoutTargetStep(final StepMeta timeoutTargetStep) {
-        this.timeoutTargetStep = timeoutTargetStep;
-    }
-
     // </editor-fold>
 }

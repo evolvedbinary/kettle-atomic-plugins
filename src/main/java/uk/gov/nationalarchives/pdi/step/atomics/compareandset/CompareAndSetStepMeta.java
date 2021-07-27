@@ -45,6 +45,7 @@ import org.pentaho.di.trans.step.errorhandling.StreamInterface;
 import org.pentaho.metastore.api.IMetaStore;
 import org.w3c.dom.NamedNodeMap;
 import org.w3c.dom.Node;
+import uk.gov.nationalarchives.pdi.step.atomics.AbstractAtomicStepMeta;
 import uk.gov.nationalarchives.pdi.step.atomics.ActionIfNoAtomic;
 import uk.gov.nationalarchives.pdi.step.atomics.ActionIfUnableToSet;
 import uk.gov.nationalarchives.pdi.step.atomics.AtomicType;
@@ -57,31 +58,16 @@ import static uk.gov.nationalarchives.pdi.step.atomics.Util.isNullOrEmpty;
 
 @Step(id = "CompareAndSetStep", image = "CompareAndSetStep.svg", name = "Compare And Set Atomic Value",
         description = "Compare and Set an Atomic Value", categoryDescription = "Flow")
-public class CompareAndSetStepMeta extends BaseStepMeta implements StepMetaInterface {
+public class CompareAndSetStepMeta extends AbstractAtomicStepMeta {
 
     private static Class<?> PKG = CompareAndSetStep.class; // for i18n purposes, needed by Translator2!!   $NON-NLS-1$
 
     // <editor-fold desc="settings XML element names">
-    private static final String ELEM_NAME_ATOMIC_ID_FIELD_NAME = "atomicIdFieldName";
-    private static final String ELEM_NAME_ATOMIC_TYPE = "atomicType";
-    private static final String ELEM_NAME_ACTION_IF_NO_ATOMIC = "actionIfNoAtomic";
-    private static final String ATTR_NAME_CONTINUE_TARGET_STEP = "continueTargetStep";
-    private static final String ATTR_NAME_CHECK_PERIOD = "checkPeriod";
-    private static final String ATTR_NAME_TIMEOUT = "timeout";
-    private static final String ATTR_NAME_VALUE = "value";
     private static final String ELEM_NAME_ACTION_IF_UNABLE_TO_SET = "actionIfUnableToSet";
     private static final String ATTR_NAME_SKIP_TARGET_STEP = "skipTargetStep";
-    private static final String ATTR_NAME_TIMEOUT_TARGET_STEP = "timeoutTargetStep";
-    private static final String ELEM_NAME_ATOMIC_VALUES = "atomicValues";
-    private static final String ELEM_NAME_ATOMIC_VALUE = "atomicValue";
     private static final String ATTR_NAME_COMPARE = "compare";
     private static final String ATTR_NAME_SET = "set";
-    private static final String ATTR_NAME_TARGET_STEP = "targetStep";
     // </editor-fold>
-
-    private static final long DEFAULT_CHECK_PERIOD = 100; // ms
-    private static final long TIMEOUT_DISABLED = -1; // No timeout
-    private static final long DEFAULT_TIMEOUT = TIMEOUT_DISABLED;
 
     private static final Stream NEW_CONTINUE_STREAM = new Stream(StreamInterface.StreamType.TARGET, (StepMeta)null, BaseMessages.getString(PKG, "CompareAndSetStepMeta.TargetStream.Continue.Description", new String[0]), StreamIcon.TARGET, (Object)null);
     private static final Stream NEW_SKIP_STREAM = new Stream(StreamInterface.StreamType.TARGET, (StepMeta)null, BaseMessages.getString(PKG, "CompareAndSetStepMeta.TargetStream.Skip.Description", new String[0]), StreamIcon.TARGET, (Object)null);
@@ -89,33 +75,18 @@ public class CompareAndSetStepMeta extends BaseStepMeta implements StepMetaInter
     private static final Stream NEW_CAS_TARGET_STREAM = new Stream(StreamInterface.StreamType.TARGET, (StepMeta)null, BaseMessages.getString(PKG, "CompareAndSetStepMeta.TargetStream.NewCASTarget.Description", new String[0]), StreamIcon.TARGET, (Object)null);
 
     // <editor-fold desc="settings">
-    private String atomicIdFieldName;
-    private AtomicType atomicType;
-    private ActionIfNoAtomic actionIfNoAtomic;
-    private String continueTargetStepname;
-    @Nullable private String initialiseAtomicValue;
-    private long waitAtomicCheckPeriod = DEFAULT_CHECK_PERIOD;
-    private long waitAtomicTimeout = DEFAULT_TIMEOUT;
     private ActionIfUnableToSet actionIfUnableToSet;
     private String skipTargetStepname;
     private long unableToSetLoopCheckPeriod = DEFAULT_CHECK_PERIOD;
     private long unableToSetLoopTimeout = DEFAULT_TIMEOUT;
-    private String timeoutTargetStepname;
     @Nullable private List<CompareAndSetTarget> compareAndSetValues;
     // </editor-fold>
 
-    @Nullable private StepMeta continueTargetStep;
     @Nullable private StepMeta skipTargetStep;
-    @Nullable private StepMeta timeoutTargetStep;
 
     @Override
     public void setDefault() {
-        atomicIdFieldName = "";
-        atomicType = AtomicType.Boolean;
-        actionIfNoAtomic = ActionIfNoAtomic.Continue;
-        initialiseAtomicValue = null;
-        waitAtomicCheckPeriod = DEFAULT_CHECK_PERIOD;
-        waitAtomicTimeout = DEFAULT_TIMEOUT;
+        super.setDefault();
         actionIfUnableToSet = ActionIfUnableToSet.Error;
         unableToSetLoopCheckPeriod = DEFAULT_CHECK_PERIOD;
         unableToSetLoopTimeout = DEFAULT_TIMEOUT;
@@ -335,10 +306,13 @@ public class CompareAndSetStepMeta extends BaseStepMeta implements StepMetaInter
         final StepIOMetaInterface ioMeta = this.getStepIOMeta();
         final List<StreamInterface> targetStreams = ioMeta.getTargetStreams();
         for (final StreamInterface targetStream : targetStreams) {
-            final CompareAndSetTarget compareAndSetValue = (CompareAndSetTarget)targetStream.getSubject();
-            if (compareAndSetValue != null && compareAndSetValue.getTargetStep() == null) {
-                final CheckResult cr = new CheckResult(CheckResultInterface.TYPE_RESULT_ERROR, BaseMessages.getString(PKG, "CompareAndSetStepMeta.CheckResult.TargetStepInvalid", new String[]{"false", compareAndSetValue.getTargetStepname()}), stepMeta);
-                remarks.add(cr);
+            final Object subject = targetStream.getSubject();
+            if (subject != null && subject instanceof CompareAndSetTarget) {
+                final CompareAndSetTarget compareAndSetValue = (CompareAndSetTarget) subject;
+                if (compareAndSetValue.getTargetStep() == null) {
+                    final CheckResult cr = new CheckResult(CheckResultInterface.TYPE_RESULT_ERROR, BaseMessages.getString(PKG, "CompareAndSetStepMeta.CheckResult.TargetStepInvalid", new String[]{"false", compareAndSetValue.getTargetStepname()}), stepMeta);
+                    remarks.add(cr);
+                }
             }
         }
 
@@ -418,10 +392,13 @@ public class CompareAndSetStepMeta extends BaseStepMeta implements StepMetaInter
     public void searchInfoAndTargetSteps(final List<StepMeta> steps) {
         final List<StreamInterface> targetStreams = this.getStepIOMeta().getTargetStreams();
         for (final StreamInterface targetStream : targetStreams) {
-            final CompareAndSetTarget compareAndSetValue = (CompareAndSetTarget)targetStream.getSubject();
-            if (compareAndSetValue != null) {
+            final Object subject = targetStream.getSubject();
+            if (subject != null && subject instanceof CompareAndSetTarget) {
+                final CompareAndSetTarget compareAndSetValue = (CompareAndSetTarget) subject;
                 final StepMeta stepMeta = StepMeta.findStep(steps, compareAndSetValue.getTargetStepname());
                 compareAndSetValue.setTargetStep(stepMeta);
+            } else {
+                log.logMinimal("Unexpected Target Stream Subject Type: " + subject);
             }
         }
 
@@ -460,7 +437,12 @@ public class CompareAndSetStepMeta extends BaseStepMeta implements StepMetaInter
             this.setTimeoutTargetStep(stream.getStepMeta());
 
         } else if (stream == NEW_CAS_TARGET_STREAM) {
-            final CompareAndSetTarget compareAndSetValue = new CompareAndSetTarget("compare1", "set1", stream.getStepMeta());
+            final CompareAndSetTarget compareAndSetValue;
+            if (atomicType == AtomicType.Integer) {
+                compareAndSetValue = new CompareAndSetTarget("12345", "54321", stream.getStepMeta());
+            } else {
+                compareAndSetValue = new CompareAndSetTarget("true", "false", stream.getStepMeta());
+            }
             if (this.compareAndSetValues == null) {
                 this.compareAndSetValues = new ArrayList<>(1);
             }
@@ -487,70 +469,6 @@ public class CompareAndSetStepMeta extends BaseStepMeta implements StepMetaInter
     }
 
     // <editor-fold desc="settings getters and setters">
-    public String getAtomicIdFieldName() {
-        return atomicIdFieldName;
-    }
-
-    public void setAtomicIdFieldName(final String atomicIdFieldName) {
-        this.atomicIdFieldName = atomicIdFieldName;
-    }
-
-    public AtomicType getAtomicType() {
-        return atomicType;
-    }
-
-    public void setAtomicType(final AtomicType atomicType) {
-        this.atomicType = atomicType;
-    }
-
-    public ActionIfNoAtomic getActionIfNoAtomic() {
-        return actionIfNoAtomic;
-    }
-
-    public void setActionIfNoAtomic(final ActionIfNoAtomic actionIfNoAtomic) {
-        this.actionIfNoAtomic = actionIfNoAtomic;
-    }
-
-    public String getContinueTargetStepname() {
-        return continueTargetStepname;
-    }
-
-    public void setContinueTargetStepname(final String continueTargetStepname) {
-        this.continueTargetStepname = continueTargetStepname;
-    }
-
-    @Nullable public StepMeta getContinueTargetStep() {
-        return continueTargetStep;
-    }
-
-    public void setContinueTargetStep(@Nullable final StepMeta continueTargetStep) {
-        this.continueTargetStep = continueTargetStep;
-    }
-
-    public @Nullable String getInitialiseAtomicValue() {
-        return initialiseAtomicValue;
-    }
-
-    public void setInitialiseAtomicValue(@Nullable final String initialiseAtomicValue) {
-        this.initialiseAtomicValue = initialiseAtomicValue;
-    }
-
-    public long getWaitAtomicCheckPeriod() {
-        return waitAtomicCheckPeriod;
-    }
-
-    public void setWaitAtomicCheckPeriod(final long waitAtomicCheckPeriod) {
-        this.waitAtomicCheckPeriod = waitAtomicCheckPeriod;
-    }
-
-    public long getWaitAtomicTimeout() {
-        return waitAtomicTimeout;
-    }
-
-    public void setWaitAtomicTimeout(final long waitAtomicTimeout) {
-        this.waitAtomicTimeout = waitAtomicTimeout;
-    }
-
     public ActionIfUnableToSet getActionIfUnableToSet() {
         return actionIfUnableToSet;
     }
@@ -591,22 +509,6 @@ public class CompareAndSetStepMeta extends BaseStepMeta implements StepMetaInter
         this.unableToSetLoopTimeout = unableToSetLoopTimeout;
     }
 
-    public String getTimeoutTargetStepname() {
-        return timeoutTargetStepname;
-    }
-
-    public void setTimeoutTargetStepname(final String timeoutTargetStepname) {
-        this.timeoutTargetStepname = timeoutTargetStepname;
-    }
-
-    public StepMeta getTimeoutTargetStep() {
-        return timeoutTargetStep;
-    }
-
-    public void setTimeoutTargetStep(final StepMeta timeoutTargetStep) {
-        this.timeoutTargetStep = timeoutTargetStep;
-    }
-
     public @Nullable List<CompareAndSetTarget> getCompareAndSetValues() {
         return compareAndSetValues;
     }
@@ -614,6 +516,5 @@ public class CompareAndSetStepMeta extends BaseStepMeta implements StepMetaInter
     public void setCompareAndSetValues(@Nullable final List<CompareAndSetTarget> compareAndSetValues) {
         this.compareAndSetValues = compareAndSetValues;
     }
-
     // </editor-fold>
 }
