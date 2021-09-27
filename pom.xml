@@ -43,12 +43,6 @@
         <url>https://nationalarchives.gov.uk</url>
     </organization>
 
-    <scm>
-        <connection>scm:git:https://github.com/nationalarchives/kettle-atomic-plugins.git</connection>
-        <developerConnection>scm:git:https://github.com/nationalarchives/kettle-atomic-plugins.git</developerConnection>
-        <url>scm:git:https://github.com/nationalarchives/kettle-atomic-plugins.git</url>
-    </scm>
-
     <licenses>
         <license>
             <name>MIT License</name>
@@ -56,6 +50,21 @@
             <distribution>repo</distribution>
         </license>
     </licenses>
+
+    <developers>
+        <developer>
+            <name>Adam Retter</name>
+            <organization>Evolved Binary</organization>
+            <email>adam@evolvedbinary.com</email>
+            <organizationUrl>https://www.evolvedbinary.com</organizationUrl>
+        </developer>
+    </developers>
+
+    <scm>
+        <connection>scm:git:https://github.com/nationalarchives/kettle-atomic-plugins.git</connection>
+        <developerConnection>scm:git:https://github.com/nationalarchives/kettle-atomic-plugins.git</developerConnection>
+        <url>scm:git:https://github.com/nationalarchives/kettle-atomic-plugins.git</url>
+    </scm>
 
     <repositories>
         <repository>
