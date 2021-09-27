@@ -28,7 +28,7 @@
 
     <groupId>uk.gov.nationalarchives.pdi</groupId>
     <artifactId>kettle-atomic-plugins</artifactId>
-    <version>1.0.0</version>
+    <version>1.0.1-SNAPSHOT</version>
 
     <name>Kettle Atomic Plugins</name>
     <description>Plugins for performing Atomic synchronisation in Pentaho Data Integration (KETTLE)</description>
